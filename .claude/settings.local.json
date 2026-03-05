@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create vite@latest . -- --template react-ts)",
+      "Bash(npm install)",
+      "Bash(npm install -D tailwindcss @tailwindcss/vite)",
+      "Bash(npm install react-router-dom leaflet react-leaflet recharts @tanstack/react-query lucide-react)",
+      "Bash(npm install -D @types/leaflet)",
+      "Bash(npx vite build)",
+      "Bash(git init)",
+      "Bash(git add -A)",
+      "Bash(git commit -m \"Initial FlightDeck: React frontend with 3 modules + FastAPI backend skeleton:*)"
+    ]
+  }
+}
