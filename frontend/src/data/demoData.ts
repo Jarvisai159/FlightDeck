@@ -252,8 +252,8 @@ export const demoItineraries: Itinerary[] = [
     total_price: 385, currency: 'EUR', total_duration_minutes: 510, total_stops: 0,
     airlines_involved: ['Emirates'], layover_durations: [],
     best_value_score: 0.78, reliability_score: 0.85,
-    booking_links: [{ airline: 'EK', url: '#', segment_index: 0 }],
-    source: 'demo', deep_link: '#',
+    booking_links: [{ airline: 'EK', url: 'https://www.emirates.com', segment_index: 0 }],
+    source: 'demo', deep_link: 'https://www.emirates.com',
     uses_nearby_airports: false, nearby_airport_note: null, risk_warnings: [],
   },
   {
@@ -280,10 +280,10 @@ export const demoItineraries: Itinerary[] = [
     airlines_involved: ['Turkish Airlines'], layover_durations: [150],
     best_value_score: 0.75, reliability_score: 0.76,
     booking_links: [
-      { airline: 'TK', url: '#', segment_index: 0 },
-      { airline: 'TK', url: '#', segment_index: 1 },
+      { airline: 'TK', url: 'https://www.turkishairlines.com', segment_index: 0 },
+      { airline: 'TK', url: 'https://www.turkishairlines.com', segment_index: 1 },
     ],
-    source: 'demo', deep_link: '#',
+    source: 'demo', deep_link: 'https://www.turkishairlines.com',
     uses_nearby_airports: false, nearby_airport_note: null, risk_warnings: [],
   },
   {
@@ -310,8 +310,8 @@ export const demoItineraries: Itinerary[] = [
     airlines_involved: ['Wizz Air', 'Ryanair'], layover_durations: [240],
     best_value_score: 0.88, reliability_score: 0.69,
     booking_links: [
-      { airline: 'W6', url: '#', segment_index: 0 },
-      { airline: 'FR', url: '#', segment_index: 1 },
+      { airline: 'W6', url: 'https://wizzair.com', segment_index: 0 },
+      { airline: 'FR', url: 'https://www.ryanair.com', segment_index: 1 },
     ],
     source: 'demo', deep_link: null,
     uses_nearby_airports: true,
@@ -342,8 +342,8 @@ export const demoItineraries: Itinerary[] = [
     airlines_involved: ['Air Arabia', 'TAP Portugal'], layover_durations: [180],
     best_value_score: 0.72, reliability_score: 0.76,
     booking_links: [
-      { airline: 'G9', url: '#', segment_index: 0 },
-      { airline: 'TP', url: '#', segment_index: 1 },
+      { airline: 'G9', url: 'https://www.airarabia.com', segment_index: 0 },
+      { airline: 'TP', url: 'https://www.flytap.com', segment_index: 1 },
     ],
     source: 'demo', deep_link: null,
     uses_nearby_airports: true,

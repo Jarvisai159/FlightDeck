@@ -3,25 +3,32 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-primary: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
-  --color-bg-card: #1e293b;
-  --color-bg-hover: #334155;
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
-  --color-border: #334155;
-  --color-border-light: #475569;
-  --color-accent: #06b6d4;
-  --color-accent-hover: #22d3ee;
-  --color-status-ontime: #22c55e;
-  --color-status-minor-delay: #f59e0b;
-  --color-status-major-delay: #ef4444;
-  --color-status-in-air: #3b82f6;
-  --color-status-cancelled: #ef4444;
-  --color-status-boarding: #a855f7;
-  --color-status-landed: #22c55e;
+  /* Minimalist dark palette — muted navy, soft grays, restrained accent */
+  --color-bg-primary: #111318;
+  --color-bg-secondary: #191b22;
+  --color-bg-tertiary: #23262f;
+  --color-bg-card: #191b22;
+  --color-bg-hover: #23262f;
+
+  --color-text-primary: #e4e5e9;
+  --color-text-secondary: #8b8d98;
+  --color-text-muted: #5c5e69;
+
+  --color-border: #23262f;
+  --color-border-light: #2e3039;
+
+  /* Subtle blue accent instead of flashy teal */
+  --color-accent: #5b8def;
+  --color-accent-hover: #7aa3ff;
+
+  --color-status-ontime: #34d399;
+  --color-status-minor-delay: #fbbf24;
+  --color-status-major-delay: #f87171;
+  --color-status-in-air: #60a5fa;
+  --color-status-cancelled: #f87171;
+  --color-status-boarding: #a78bfa;
+  --color-status-landed: #34d399;
+
   --font-sans: 'DM Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
@@ -37,40 +44,31 @@ body {
 }
 
 .light {
-  --color-bg-primary: #f8fafc;
+  --color-bg-primary: #fafafa;
   --color-bg-secondary: #ffffff;
-  --color-bg-tertiary: #f1f5f9;
+  --color-bg-tertiary: #f3f4f6;
   --color-bg-card: #ffffff;
-  --color-bg-hover: #f1f5f9;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94a3b8;
-  --color-border: #e2e8f0;
-  --color-border-light: #cbd5e1;
+  --color-bg-hover: #f3f4f6;
+  --color-text-primary: #111318;
+  --color-text-secondary: #5c5e69;
+  --color-text-muted: #8b8d98;
+  --color-border: #e5e7eb;
+  --color-border-light: #d1d5db;
+  --color-accent: #4a7ae8;
+  --color-accent-hover: #3a6ad8;
 }
 
 .leaflet-container {
   background: var(--color-bg-secondary) !important;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
 }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--color-bg-primary); }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-bg-tertiary); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-border-light); }
 
-@keyframes fly-across {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(400%); }
-}
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-fly { animation: fly-across 2s ease-in-out infinite; }
-.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
-.animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+.animate-fade-in { animation: fade-in 0.25s ease-out forwards; }
