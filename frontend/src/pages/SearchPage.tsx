@@ -6,9 +6,10 @@ import {
 import AirportAutocomplete from '../components/ui/AirportAutocomplete'
 import type { AirportOption } from '../data/airports'
 import { searchFlights, type NormalizedItinerary, type NormalizedSegment } from '../services/flightApi'
-import { buildGoogleFlightsUrl, buildKiwiUrl, buildSkyscannerUrl, buildSegmentBookingUrl, getAirlineUrl, hasAirlineWebsite } from '../utils/booking'
-import { demoItineraries } from '../data/demoData'
+import { buildGoogleFlightsUrl, buildKiwiUrl, buildSegmentBookingUrl, getAirlineUrl, hasAirlineWebsite } from '../utils/booking'
+import { generateDemoItineraries } from '../data/demoData'
 import { convertPrice, getCurrencyCode } from '../utils/currency'
+import { formatDisplayDate, getDatePlaceholder, toKiwiDate, parseDateInput, todayISO } from '../utils/dateFormat'
 
 // --- Types ---
 type SortBy = 'best_value' | 'cheapest' | 'fastest' | 'fewest_stops'
@@ -51,17 +52,8 @@ function formatTime(iso: string) {
   }
 }
 
-function formatDateDDMMYYYY(dateStr: string): string {
-  // Convert YYYY-MM-DD to dd/mm/yyyy
-  if (!dateStr) return ''
-  const [y, m, d] = dateStr.split('-')
-  return `${d}/${m}/${y}`
-}
-
-function todayStr(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+// Date helpers — delegate to dateFormat utility
+const datePlaceholder = getDatePlaceholder()
 
 function sortResults(items: NormalizedItinerary[], by: SortBy): NormalizedItinerary[] {
   const sorted = [...items]
@@ -73,8 +65,8 @@ function sortResults(items: NormalizedItinerary[], by: SortBy): NormalizedItiner
   }
 }
 
-// Sort demo data
-function sortDemo(items: typeof demoItineraries, by: SortBy) {
+// Sort demo data (Itinerary type from demoData)
+function sortDemo(items: ReturnType<typeof generateDemoItineraries>, by: SortBy) {
   const sorted = [...items]
   switch (by) {
     case 'cheapest': return sorted.sort((a, b) => a.total_price - b.total_price)
@@ -180,13 +172,14 @@ export default function SearchPage() {
   // Search form state
   const [fromAirport, setFromAirport] = useState<AirportOption | null>(null)
   const [toAirport, setToAirport] = useState<AirportOption | null>(null)
-  const [departureDate, setDepartureDate] = useState(todayStr())
+  const [departureDate, setDepartureDate] = useState(todayISO())
   const [returnDate, setReturnDate] = useState('')
   const [cabinClass, setCabinClass] = useState<CabinClass>('M')
   const [passengers, setPassengers] = useState(1)
 
   // Results state
   const [results, setResults] = useState<NormalizedItinerary[]>([])
+  const [demoResults, setDemoResults] = useState<ReturnType<typeof generateDemoItineraries>>([])
   const [isDemo, setIsDemo] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -211,8 +204,8 @@ export default function SearchPage() {
       const res = await searchFlights({
         flyFrom: from,
         flyTo: to,
-        dateFrom: formatDateDDMMYYYY(dep),
-        dateTo: ret ? formatDateDDMMYYYY(ret) : undefined,
+        dateFrom: toKiwiDate(dep),
+        dateTo: ret ? toKiwiDate(ret) : undefined,
         currency: currCode,
         adults: pax,
         maxStopovers: 2,
@@ -221,7 +214,8 @@ export default function SearchPage() {
       })
 
       if (res.isDemo || res.results.length === 0) {
-        // Fallback to demo data
+        // Fallback to dynamic demo data using the airports selected
+        setDemoResults(generateDemoItineraries(from, to, dep))
         setResults([])
         setIsDemo(true)
       } else {
@@ -232,7 +226,8 @@ export default function SearchPage() {
       setSearched(true)
     } catch (err: any) {
       setError(err.message || 'Search failed')
-      // Show demo data on error
+      // Show demo data for the actual route
+      setDemoResults(generateDemoItineraries(from, to, dep))
       setResults([])
       setIsDemo(true)
       setSearched(true)
@@ -305,9 +300,8 @@ export default function SearchPage() {
 
   // --- Sorted results ---
   const sortedResults = useMemo(() => sortResults(results, sortBy), [results, sortBy])
-  const sortedDemoResults = useMemo(() => sortDemo(demoItineraries, sortBy), [sortBy])
+  const sortedDemoResults = useMemo(() => sortDemo(demoResults, sortBy), [demoResults, sortBy])
 
-  const displayResults = isDemo ? sortedDemoResults : sortedResults
   const resultCount = isDemo ? sortedDemoResults.length : sortedResults.length
 
   // Countdown display
@@ -347,37 +341,47 @@ export default function SearchPage() {
           {/* Departure Date */}
           <div className="flex-1 min-w-[130px]">
             <label className="text-[10px] font-medium text-text-muted uppercase tracking-wider block mb-1">
-              Departure
+              Departure <span className="text-text-muted/50">({datePlaceholder})</span>
             </label>
-            <input
-              type="date"
-              value={departureDate}
-              onChange={(e) => setDepartureDate(e.target.value)}
-              min={todayStr()}
-              className="w-full bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50"
-            />
-            {departureDate && (
-              <p className="text-[9px] text-text-muted mt-0.5 font-mono">{formatDateDDMMYYYY(departureDate)}</p>
-            )}
+            <div className="relative">
+              <input
+                type="date"
+                value={departureDate}
+                onChange={(e) => setDepartureDate(e.target.value)}
+                min={todayISO()}
+                className="w-full bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-transparent focus:outline-none focus:border-accent/50 cursor-pointer"
+                style={{ colorScheme: 'dark' }}
+              />
+              {/* Overlay showing locale-formatted date */}
+              <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
+                <span className="text-sm font-mono text-text-primary">
+                  {departureDate ? formatDisplayDate(departureDate) : datePlaceholder}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Return Date */}
           <div className="flex-1 min-w-[130px]">
             <label className="text-[10px] font-medium text-text-muted uppercase tracking-wider block mb-1">
-              Return <span className="text-text-muted/60">(optional)</span>
+              Return <span className="text-text-muted/50">(optional)</span>
             </label>
-            <input
-              type="date"
-              value={returnDate}
-              onChange={(e) => setReturnDate(e.target.value)}
-              min={departureDate || todayStr()}
-              className="w-full bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50"
-            />
-            {returnDate ? (
-              <p className="text-[9px] text-text-muted mt-0.5 font-mono">{formatDateDDMMYYYY(returnDate)}</p>
-            ) : (
-              <p className="text-[9px] text-accent/70 mt-0.5">One-way</p>
-            )}
+            <div className="relative">
+              <input
+                type="date"
+                value={returnDate}
+                onChange={(e) => setReturnDate(e.target.value)}
+                min={departureDate || todayISO()}
+                className="w-full bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-transparent focus:outline-none focus:border-accent/50 cursor-pointer"
+                style={{ colorScheme: 'dark' }}
+              />
+              {/* Overlay showing locale-formatted date */}
+              <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
+                <span className={`text-sm font-mono ${returnDate ? 'text-text-primary' : 'text-accent/60'}`}>
+                  {returnDate ? formatDisplayDate(returnDate) : 'One-way'}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Cabin Class */}

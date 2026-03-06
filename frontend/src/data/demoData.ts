@@ -237,117 +237,260 @@ export function getFlightPerformance(flightNumber: string, days: number = 30): F
   }
 }
 
-// --- Demo Search Results ---
-export const demoItineraries: Itinerary[] = [
-  {
-    id: 'itin-1',
-    segments: [{
-      airline_iata: 'EK', airline_name: 'Emirates', flight_number: 'EK191',
-      departure_airport: 'DXB', departure_airport_name: 'Dubai Intl',
-      arrival_airport: 'LIS', arrival_airport_name: 'Lisbon',
-      departure_time: '2026-03-10T08:00:00Z', arrival_time: '2026-03-10T14:30:00Z',
-      duration_minutes: 510, cabin_class: 'Economy',
-      on_time_percentage: 85.2, reliability_color: 'green',
-    }],
-    total_price: 385, currency: 'EUR', total_duration_minutes: 510, total_stops: 0,
-    airlines_involved: ['Emirates'], layover_durations: [],
-    best_value_score: 0.78, reliability_score: 0.85,
-    booking_links: [{ airline: 'EK', url: 'https://www.emirates.com', segment_index: 0 }],
-    source: 'demo', deep_link: 'https://www.emirates.com',
-    uses_nearby_airports: false, nearby_airport_note: null, risk_warnings: [],
-  },
-  {
-    id: 'itin-2',
-    segments: [
-      {
-        airline_iata: 'TK', airline_name: 'Turkish Airlines', flight_number: 'TK762',
-        departure_airport: 'DXB', departure_airport_name: 'Dubai Intl',
-        arrival_airport: 'IST', arrival_airport_name: 'Istanbul',
-        departure_time: '2026-03-10T06:00:00Z', arrival_time: '2026-03-10T10:30:00Z',
-        duration_minutes: 270, cabin_class: 'Economy',
-        on_time_percentage: 78.0, reliability_color: 'green',
-      },
-      {
-        airline_iata: 'TK', airline_name: 'Turkish Airlines', flight_number: 'TK1755',
-        departure_airport: 'IST', arrival_airport_name: 'Lisbon',
-        departure_airport_name: 'Istanbul', arrival_airport: 'LIS',
-        departure_time: '2026-03-10T13:00:00Z', arrival_time: '2026-03-10T16:15:00Z',
-        duration_minutes: 255, cabin_class: 'Economy',
-        on_time_percentage: 74.5, reliability_color: 'amber',
-      },
-    ],
-    total_price: 245, currency: 'EUR', total_duration_minutes: 615, total_stops: 1,
-    airlines_involved: ['Turkish Airlines'], layover_durations: [150],
-    best_value_score: 0.75, reliability_score: 0.76,
-    booking_links: [
-      { airline: 'TK', url: 'https://www.turkishairlines.com', segment_index: 0 },
-      { airline: 'TK', url: 'https://www.turkishairlines.com', segment_index: 1 },
-    ],
-    source: 'demo', deep_link: 'https://www.turkishairlines.com',
-    uses_nearby_airports: false, nearby_airport_note: null, risk_warnings: [],
-  },
-  {
-    id: 'itin-3',
-    segments: [
-      {
-        airline_iata: 'W6', airline_name: 'Wizz Air', flight_number: 'W6101',
-        departure_airport: 'SHJ', departure_airport_name: 'Sharjah',
-        arrival_airport: 'BGY', arrival_airport_name: 'Milan Bergamo',
-        departure_time: '2026-03-10T03:00:00Z', arrival_time: '2026-03-10T08:00:00Z',
-        duration_minutes: 360, cabin_class: 'Economy',
-        on_time_percentage: 68.3, reliability_color: 'amber',
-      },
-      {
-        airline_iata: 'FR', airline_name: 'Ryanair', flight_number: 'FR4782',
-        departure_airport: 'BGY', departure_airport_name: 'Milan Bergamo',
-        arrival_airport: 'LIS', arrival_airport_name: 'Lisbon',
-        departure_time: '2026-03-10T12:00:00Z', arrival_time: '2026-03-10T14:00:00Z',
-        duration_minutes: 180, cabin_class: 'Economy',
-        on_time_percentage: 71.0, reliability_color: 'amber',
-      },
-    ],
-    total_price: 127, currency: 'EUR', total_duration_minutes: 780, total_stops: 1,
-    airlines_involved: ['Wizz Air', 'Ryanair'], layover_durations: [240],
-    best_value_score: 0.88, reliability_score: 0.69,
-    booking_links: [
-      { airline: 'W6', url: 'https://wizzair.com', segment_index: 0 },
-      { airline: 'FR', url: 'https://www.ryanair.com', segment_index: 1 },
-    ],
-    source: 'demo', deep_link: null,
-    uses_nearby_airports: true,
-    nearby_airport_note: 'Departs from Sharjah (SHJ) instead of Dubai (DXB) — 30 min drive',
-    risk_warnings: ['Separate bookings: if Wizz Air is delayed, Ryanair won\'t wait', 'Self-transfer at Milan Bergamo — collect and re-check luggage'],
-  },
-  {
-    id: 'itin-4',
-    segments: [
-      {
-        airline_iata: 'G9', airline_name: 'Air Arabia', flight_number: 'G9345',
-        departure_airport: 'SHJ', departure_airport_name: 'Sharjah',
-        arrival_airport: 'BCN', arrival_airport_name: 'Barcelona',
-        departure_time: '2026-03-10T07:00:00Z', arrival_time: '2026-03-10T12:30:00Z',
-        duration_minutes: 390, cabin_class: 'Economy',
-        on_time_percentage: 72.0, reliability_color: 'amber',
-      },
-      {
-        airline_iata: 'TP', airline_name: 'TAP Portugal', flight_number: 'TP1040',
-        departure_airport: 'BCN', departure_airport_name: 'Barcelona',
-        arrival_airport: 'LIS', arrival_airport_name: 'Lisbon',
-        departure_time: '2026-03-10T15:30:00Z', arrival_time: '2026-03-10T16:45:00Z',
-        duration_minutes: 135, cabin_class: 'Economy',
-        on_time_percentage: 80.5, reliability_color: 'green',
-      },
-    ],
-    total_price: 198, currency: 'EUR', total_duration_minutes: 705, total_stops: 1,
-    airlines_involved: ['Air Arabia', 'TAP Portugal'], layover_durations: [180],
-    best_value_score: 0.72, reliability_score: 0.76,
-    booking_links: [
-      { airline: 'G9', url: 'https://www.airarabia.com', segment_index: 0 },
-      { airline: 'TP', url: 'https://www.flytap.com', segment_index: 1 },
-    ],
-    source: 'demo', deep_link: null,
-    uses_nearby_airports: true,
-    nearby_airport_note: 'Departs from Sharjah (SHJ) — check Air Arabia for best fares',
-    risk_warnings: ['Separate bookings — self-transfer in Barcelona'],
-  },
+// --- Dynamic Demo Search Results Generator ---
+// Generates realistic demo itineraries for ANY airport pair
+
+interface AirlineInfo {
+  iata: string
+  name: string
+  url: string
+  hub?: string
+}
+
+const MAJOR_AIRLINES: AirlineInfo[] = [
+  { iata: 'EK', name: 'Emirates', url: 'https://www.emirates.com', hub: 'DXB' },
+  { iata: 'TK', name: 'Turkish Airlines', url: 'https://www.turkishairlines.com', hub: 'IST' },
+  { iata: 'QR', name: 'Qatar Airways', url: 'https://www.qatarairways.com', hub: 'DOH' },
+  { iata: 'LH', name: 'Lufthansa', url: 'https://www.lufthansa.com', hub: 'FRA' },
+  { iata: 'BA', name: 'British Airways', url: 'https://www.britishairways.com', hub: 'LHR' },
+  { iata: 'AF', name: 'Air France', url: 'https://www.airfrance.com', hub: 'CDG' },
+  { iata: 'KL', name: 'KLM', url: 'https://www.klm.com', hub: 'AMS' },
+  { iata: 'EY', name: 'Etihad', url: 'https://www.etihad.com', hub: 'AUH' },
 ]
+
+const BUDGET_AIRLINES: AirlineInfo[] = [
+  { iata: 'FR', name: 'Ryanair', url: 'https://www.ryanair.com' },
+  { iata: 'W6', name: 'Wizz Air', url: 'https://wizzair.com' },
+  { iata: 'U2', name: 'easyJet', url: 'https://www.easyjet.com' },
+  { iata: 'VY', name: 'Vueling', url: 'https://www.vueling.com' },
+  { iata: 'PC', name: 'Pegasus', url: 'https://www.flypgs.com' },
+]
+
+const HUB_AIRPORTS = ['IST', 'DOH', 'FRA', 'LHR', 'CDG', 'AMS', 'BCN', 'MXP', 'DXB', 'AUH', 'VIE', 'ZRH']
+
+function pickRandom<T>(arr: T[], seed: number): T {
+  return arr[Math.abs(seed) % arr.length]
+}
+
+function hashStr(s: string): number {
+  return s.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0)
+}
+
+function addHours(base: string, hours: number): string {
+  const d = new Date(base)
+  d.setTime(d.getTime() + hours * 3600000)
+  return d.toISOString()
+}
+
+export function generateDemoItineraries(from: string, to: string, dateISO: string): Itinerary[] {
+  const seed = hashStr(from + to + dateISO)
+  const baseDate = dateISO || '2026-03-10'
+  const baseDep = `${baseDate}T06:00:00Z`
+
+  // Estimate a reasonable direct flight duration (3-14 hours based on hash)
+  const directHours = 3 + (Math.abs(seed) % 11)
+  const directPrice = 180 + (Math.abs(seed * 7) % 400)
+
+  // Pick connecting hubs (exclude from and to)
+  const availableHubs = HUB_AIRPORTS.filter(h => h !== from && h !== to)
+
+  const itineraries: Itinerary[] = []
+
+  // 1. Direct flight (major airline)
+  const directAirline = pickRandom(MAJOR_AIRLINES, seed)
+  itineraries.push({
+    id: `demo-${from}-${to}-1`,
+    segments: [{
+      airline_iata: directAirline.iata,
+      airline_name: directAirline.name,
+      flight_number: `${directAirline.iata}${100 + (Math.abs(seed) % 900)}`,
+      departure_airport: from, departure_airport_name: from,
+      arrival_airport: to, arrival_airport_name: to,
+      departure_time: addHours(baseDep, 2),
+      arrival_time: addHours(baseDep, 2 + directHours),
+      duration_minutes: directHours * 60,
+      cabin_class: 'Economy',
+      on_time_percentage: 82 + (Math.abs(seed) % 12),
+      reliability_color: 'green',
+    }],
+    total_price: directPrice,
+    currency: 'EUR',
+    total_duration_minutes: directHours * 60,
+    total_stops: 0,
+    airlines_involved: [directAirline.name],
+    layover_durations: [],
+    best_value_score: 0.75 + (Math.abs(seed) % 15) / 100,
+    reliability_score: 0.82 + (Math.abs(seed) % 10) / 100,
+    booking_links: [{ airline: directAirline.iata, url: directAirline.url, segment_index: 0 }],
+    source: 'demo',
+    deep_link: directAirline.url,
+    uses_nearby_airports: false,
+    nearby_airport_note: null,
+    risk_warnings: [],
+  })
+
+  // 2. One-stop via hub (same airline both legs)
+  const hub1 = pickRandom(availableHubs, seed + 1)
+  const conn1Airline = pickRandom(MAJOR_AIRLINES.filter(a => a.hub === hub1 || true), seed + 2)
+  const leg1Hours = 2 + (Math.abs(seed + 3) % 6)
+  const layover1 = 90 + (Math.abs(seed + 4) % 120)
+  const leg2Hours = 2 + (Math.abs(seed + 5) % 6)
+  itineraries.push({
+    id: `demo-${from}-${to}-2`,
+    segments: [
+      {
+        airline_iata: conn1Airline.iata, airline_name: conn1Airline.name,
+        flight_number: `${conn1Airline.iata}${200 + (Math.abs(seed + 6) % 800)}`,
+        departure_airport: from, departure_airport_name: from,
+        arrival_airport: hub1, arrival_airport_name: hub1,
+        departure_time: addHours(baseDep, 0),
+        arrival_time: addHours(baseDep, leg1Hours),
+        duration_minutes: leg1Hours * 60,
+        cabin_class: 'Economy',
+        on_time_percentage: 75 + (Math.abs(seed + 7) % 15),
+        reliability_color: 'green',
+      },
+      {
+        airline_iata: conn1Airline.iata, airline_name: conn1Airline.name,
+        flight_number: `${conn1Airline.iata}${300 + (Math.abs(seed + 8) % 700)}`,
+        departure_airport: hub1, departure_airport_name: hub1,
+        arrival_airport: to, arrival_airport_name: to,
+        departure_time: addHours(baseDep, leg1Hours + layover1 / 60),
+        arrival_time: addHours(baseDep, leg1Hours + layover1 / 60 + leg2Hours),
+        duration_minutes: leg2Hours * 60,
+        cabin_class: 'Economy',
+        on_time_percentage: 72 + (Math.abs(seed + 9) % 18),
+        reliability_color: 'amber',
+      },
+    ],
+    total_price: Math.round(directPrice * 0.7),
+    currency: 'EUR',
+    total_duration_minutes: (leg1Hours + leg2Hours) * 60 + layover1,
+    total_stops: 1,
+    airlines_involved: [conn1Airline.name],
+    layover_durations: [layover1],
+    best_value_score: 0.72 + (Math.abs(seed) % 10) / 100,
+    reliability_score: 0.74 + (Math.abs(seed) % 8) / 100,
+    booking_links: [
+      { airline: conn1Airline.iata, url: conn1Airline.url, segment_index: 0 },
+      { airline: conn1Airline.iata, url: conn1Airline.url, segment_index: 1 },
+    ],
+    source: 'demo',
+    deep_link: conn1Airline.url,
+    uses_nearby_airports: false,
+    nearby_airport_note: null,
+    risk_warnings: [],
+  })
+
+  // 3. Budget multi-airline option (two different airlines via a hub)
+  const hub2 = pickRandom(availableHubs.filter(h => h !== hub1), seed + 10)
+  const budgetAirline1 = pickRandom(BUDGET_AIRLINES, seed + 11)
+  const budgetAirline2 = pickRandom(BUDGET_AIRLINES.filter(a => a.iata !== budgetAirline1.iata), seed + 12)
+  const bLeg1Hours = 3 + (Math.abs(seed + 13) % 5)
+  const bLayover = 180 + (Math.abs(seed + 14) % 120)
+  const bLeg2Hours = 2 + (Math.abs(seed + 15) % 4)
+  itineraries.push({
+    id: `demo-${from}-${to}-3`,
+    segments: [
+      {
+        airline_iata: budgetAirline1.iata, airline_name: budgetAirline1.name,
+        flight_number: `${budgetAirline1.iata}${400 + (Math.abs(seed + 16) % 600)}`,
+        departure_airport: from, departure_airport_name: from,
+        arrival_airport: hub2, arrival_airport_name: hub2,
+        departure_time: addHours(baseDep, -1),
+        arrival_time: addHours(baseDep, -1 + bLeg1Hours),
+        duration_minutes: bLeg1Hours * 60,
+        cabin_class: 'Economy',
+        on_time_percentage: 65 + (Math.abs(seed + 17) % 15),
+        reliability_color: 'amber',
+      },
+      {
+        airline_iata: budgetAirline2.iata, airline_name: budgetAirline2.name,
+        flight_number: `${budgetAirline2.iata}${500 + (Math.abs(seed + 18) % 500)}`,
+        departure_airport: hub2, departure_airport_name: hub2,
+        arrival_airport: to, arrival_airport_name: to,
+        departure_time: addHours(baseDep, -1 + bLeg1Hours + bLayover / 60),
+        arrival_time: addHours(baseDep, -1 + bLeg1Hours + bLayover / 60 + bLeg2Hours),
+        duration_minutes: bLeg2Hours * 60,
+        cabin_class: 'Economy',
+        on_time_percentage: 68 + (Math.abs(seed + 19) % 12),
+        reliability_color: 'amber',
+      },
+    ],
+    total_price: Math.round(directPrice * 0.4),
+    currency: 'EUR',
+    total_duration_minutes: (bLeg1Hours + bLeg2Hours) * 60 + bLayover,
+    total_stops: 1,
+    airlines_involved: [budgetAirline1.name, budgetAirline2.name],
+    layover_durations: [bLayover],
+    best_value_score: 0.85 + (Math.abs(seed) % 8) / 100,
+    reliability_score: 0.65 + (Math.abs(seed) % 10) / 100,
+    booking_links: [
+      { airline: budgetAirline1.iata, url: budgetAirline1.url, segment_index: 0 },
+      { airline: budgetAirline2.iata, url: budgetAirline2.url, segment_index: 1 },
+    ],
+    source: 'demo',
+    deep_link: null,
+    uses_nearby_airports: false,
+    nearby_airport_note: null,
+    risk_warnings: [
+      `Separate bookings: if ${budgetAirline1.name} is delayed, ${budgetAirline2.name} won't wait`,
+      `Self-transfer at ${hub2} — collect and re-check luggage`,
+    ],
+  })
+
+  // 4. Another connecting option via different hub
+  const hub3 = pickRandom(availableHubs.filter(h => h !== hub1 && h !== hub2), seed + 20)
+  const conn2Airline = pickRandom(MAJOR_AIRLINES.filter(a => a.iata !== conn1Airline.iata), seed + 21)
+  const c2Leg1Hours = 2 + (Math.abs(seed + 22) % 5)
+  const c2Layover = 120 + (Math.abs(seed + 23) % 90)
+  const c2Leg2Hours = 3 + (Math.abs(seed + 24) % 5)
+  itineraries.push({
+    id: `demo-${from}-${to}-4`,
+    segments: [
+      {
+        airline_iata: conn2Airline.iata, airline_name: conn2Airline.name,
+        flight_number: `${conn2Airline.iata}${600 + (Math.abs(seed + 25) % 400)}`,
+        departure_airport: from, departure_airport_name: from,
+        arrival_airport: hub3, arrival_airport_name: hub3,
+        departure_time: addHours(baseDep, 1),
+        arrival_time: addHours(baseDep, 1 + c2Leg1Hours),
+        duration_minutes: c2Leg1Hours * 60,
+        cabin_class: 'Economy',
+        on_time_percentage: 77 + (Math.abs(seed + 26) % 13),
+        reliability_color: 'green',
+      },
+      {
+        airline_iata: conn2Airline.iata, airline_name: conn2Airline.name,
+        flight_number: `${conn2Airline.iata}${700 + (Math.abs(seed + 27) % 300)}`,
+        departure_airport: hub3, departure_airport_name: hub3,
+        arrival_airport: to, arrival_airport_name: to,
+        departure_time: addHours(baseDep, 1 + c2Leg1Hours + c2Layover / 60),
+        arrival_time: addHours(baseDep, 1 + c2Leg1Hours + c2Layover / 60 + c2Leg2Hours),
+        duration_minutes: c2Leg2Hours * 60,
+        cabin_class: 'Economy',
+        on_time_percentage: 73 + (Math.abs(seed + 28) % 15),
+        reliability_color: 'amber',
+      },
+    ],
+    total_price: Math.round(directPrice * 0.6),
+    currency: 'EUR',
+    total_duration_minutes: (c2Leg1Hours + c2Leg2Hours) * 60 + c2Layover,
+    total_stops: 1,
+    airlines_involved: [conn2Airline.name],
+    layover_durations: [c2Layover],
+    best_value_score: 0.70 + (Math.abs(seed) % 12) / 100,
+    reliability_score: 0.75 + (Math.abs(seed) % 9) / 100,
+    booking_links: [
+      { airline: conn2Airline.iata, url: conn2Airline.url, segment_index: 0 },
+      { airline: conn2Airline.iata, url: conn2Airline.url, segment_index: 1 },
+    ],
+    source: 'demo',
+    deep_link: conn2Airline.url,
+    uses_nearby_airports: false,
+    nearby_airport_note: null,
+    risk_warnings: [],
+  })
+
+  return itineraries
+}
