@@ -6,7 +6,7 @@ import {
 import AirportAutocomplete from '../components/ui/AirportAutocomplete'
 import type { AirportOption } from '../data/airports'
 import { searchFlights, type NormalizedItinerary, type NormalizedSegment } from '../services/flightApi'
-import { buildGoogleFlightsUrl, buildKiwiUrl, buildSegmentBookingUrl, buildSkyscannerUrl, getAirlineUrl, hasAirlineWebsite } from '../utils/booking'
+import { buildGoogleFlightsUrl, buildSegmentBookingUrl, buildSkyscannerUrl, getAirlineUrl, hasAirlineWebsite } from '../utils/booking'
 import { generateDemoItineraries } from '../data/demoData'
 import { getCurrencyCode, formatPrice } from '../utils/currency'
 import { formatDisplayDate, getDatePlaceholder, todayISO } from '../utils/dateFormat'
@@ -195,19 +195,20 @@ function FlightCard({
 
         {/* Price + Book column */}
         <div className="flex flex-col items-center justify-center bg-bg-primary/30 border-l border-border px-5 py-4 min-w-[150px]">
-          <p className="text-2xl font-bold text-text-primary font-mono leading-tight">
-            {formatPrice(itin.price, itin.currency)}
+          <p className="text-lg font-bold text-text-secondary font-mono leading-tight flex items-center gap-1">
+            <span className="text-[10px] text-text-muted font-normal">from</span>
+            ~{formatPrice(itin.price, itin.currency)}
           </p>
           {passengers > 1 && (
             <p className="text-[10px] text-text-muted mt-0.5">{passengers} passengers</p>
           )}
           <a
-            href={itin.deepLink}
+            href={buildGoogleFlightsUrl(itin.from, itin.to, departureDate, cabinClass, passengers)}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 w-full bg-accent hover:bg-accent-hover text-white text-sm font-semibold py-2.5 px-5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
           >
-            Select →
+            Book →
           </a>
           <a
             href={buildSkyscannerUrl(itin.from, itin.to, departureDate, returnDate || undefined)}
@@ -344,19 +345,17 @@ function DemoFlightCard({
 
         {/* Price + Book column */}
         <div className="flex flex-col items-center justify-center bg-bg-primary/30 border-l border-border px-5 py-4 min-w-[150px]">
-          <p className="text-2xl font-bold text-text-primary font-mono leading-tight">
-            {formatPrice(itin.total_price, itin.currency)}
+          <p className="text-lg font-bold text-text-secondary font-mono leading-tight flex items-center gap-1">
+            <span className="text-[10px] text-text-muted font-normal">from</span>
+            ~{formatPrice(itin.total_price, itin.currency)}
           </p>
           <a
-            href={
-              itin.deep_link ||
-              buildKiwiUrl(firstSeg.departure_airport, lastSeg.arrival_airport, departureDate, returnDate || undefined)
-            }
+            href={buildGoogleFlightsUrl(firstSeg.departure_airport, lastSeg.arrival_airport, departureDate, cabinClass, passengers)}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 w-full bg-accent hover:bg-accent-hover text-white text-sm font-semibold py-2.5 px-5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
           >
-            Select →
+            Book →
           </a>
           <a
             href={buildSkyscannerUrl(firstSeg.departure_airport, lastSeg.arrival_airport, departureDate, returnDate || undefined)}
@@ -614,7 +613,7 @@ export default function SearchPage() {
             <div className="flex items-center gap-3">
               {isDemo && (
                 <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">
-                  <Info className="w-3 h-3" /> Demo
+                  <Info className="w-3 h-3" /> Demo data
                 </span>
               )}
               {lastUpdated && (
@@ -628,6 +627,16 @@ export default function SearchPage() {
               <span className="text-[10px] text-text-muted font-mono">{resultCount} results</span>
             </div>
           </div>
+
+          {/* Price disclaimer */}
+          {!loading && resultCount > 0 && (
+            <div className="flex items-start gap-2 bg-blue-500/5 border border-blue-500/15 rounded-lg px-3 py-2.5">
+              <Info className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-blue-300/80 leading-relaxed">
+                Prices shown are approximate starting fares. Click <strong>Book</strong> to see exact prices on Google Flights or compare on Skyscanner.
+              </p>
+            </div>
+          )}
 
           {loading && (
             <div className="flex items-center justify-center py-12 gap-2">
@@ -656,10 +665,10 @@ export default function SearchPage() {
 
       {!searched && !loading && (
         <div className="text-center py-16">
-          <Search className="w-8 h-8 text-text-muted mx-auto mb-3" />
-          <h2 className="text-sm font-medium text-text-secondary mb-1">Find creative flight combinations</h2>
+          <Plane className="w-8 h-8 text-text-muted mx-auto mb-3" />
+          <h2 className="text-sm font-medium text-text-secondary mb-1">Search flights across airlines</h2>
           <p className="text-xs text-text-muted max-w-sm mx-auto">
-            Search multiple airlines and nearby airports to find routes traditional booking sites miss.
+            Find and compare flights, then book directly on Google Flights or Skyscanner for the best prices.
           </p>
         </div>
       )}

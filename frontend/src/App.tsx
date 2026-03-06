@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from './components/layout/Navbar'
 import AdPanel from './components/layout/AdPanel'
-import StatusPage from './pages/StatusPage'
 import HistoryPage from './pages/HistoryPage'
 import SearchPage from './pages/SearchPage'
 
@@ -13,10 +12,11 @@ function App() {
         <AdPanel position="left" />
         <main className="flex-1 max-w-5xl min-w-0">
           <Routes>
-            <Route path="/" element={<Navigate to="/status" replace />} />
-            <Route path="/status" element={<StatusPage />} />
-            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/" element={<Navigate to="/search" replace />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            {/* Redirect old status route */}
+            <Route path="/status" element={<Navigate to="/search" replace />} />
           </Routes>
         </main>
         <AdPanel position="right" />

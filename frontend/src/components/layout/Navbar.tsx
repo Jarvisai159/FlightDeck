@@ -3,9 +3,8 @@ import { Plane, BarChart3, Search, Sun, Moon } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 
 const tabs = [
-  { to: '/status', label: 'Status', icon: Plane },
+  { to: '/search', label: 'Flights', icon: Search },
   { to: '/history', label: 'History', icon: BarChart3 },
-  { to: '/search', label: 'Search', icon: Search },
 ]
 
 export default function Navbar() {
@@ -53,7 +52,7 @@ export default function Navbar() {
               {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-text-muted" /> : <Moon className="w-3.5 h-3.5 text-text-muted" />}
             </button>
             <span className="text-[9px] font-mono text-text-muted bg-bg-tertiary px-1.5 py-0.5 rounded">
-              DEMO
+              BETA
             </span>
           </div>
         </div>

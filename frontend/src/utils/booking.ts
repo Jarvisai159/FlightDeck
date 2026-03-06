@@ -55,22 +55,6 @@ export function buildGoogleFlightsUrl(
   return url
 }
 
-// Build a Kiwi.com search URL (date in dd-mm-yyyy)
-export function buildKiwiUrl(
-  from: string,
-  to: string,
-  date: string, // YYYY-MM-DD
-  returnDate?: string,
-): string {
-  const [y, m, d] = date.split('-')
-  let url = `https://www.kiwi.com/en/search/results/${from}/${to}/${d}-${m}-${y}`
-  if (returnDate) {
-    const [ry, rm, rd] = returnDate.split('-')
-    url += `/${rd}-${rm}-${ry}`
-  }
-  return url
-}
-
 // Build a Skyscanner search URL
 export function buildSkyscannerUrl(
   from: string,
@@ -102,18 +86,17 @@ export function buildSegmentBookingUrl(
   return buildGoogleFlightsUrl(from, to, dateStr)
 }
 
-// Build a booking link for an itinerary — prefers airline direct, falls back to OTA
+// Build a booking link for an itinerary — prefers airline direct, falls back to Google Flights
 export function buildBookingUrl(
   airlineIata: string,
   from: string,
   to: string,
   date: string,
-  returnDate?: string,
 ): string {
   if (airlineWebsites[airlineIata]) {
     return airlineWebsites[airlineIata]
   }
-  return buildKiwiUrl(from, to, date, returnDate)
+  return buildGoogleFlightsUrl(from, to, date)
 }
 
 // Check if an airline website is known
