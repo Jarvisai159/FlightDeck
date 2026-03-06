@@ -1,45 +1,46 @@
-// Flight search API service — calls Vercel serverless functions (Kiwi Tequila proxy)
+// Flight search API service — calls Vercel serverless functions (Amadeus API proxy)
 import type { AirportOption } from '../data/airports'
 
-// --- Kiwi API response types ---
-export interface KiwiRouteSegment {
-  flyFrom: string
-  flyTo: string
-  cityFrom: string
-  cityTo: string
-  airline: string
-  operating_carrier: string
-  flight_no: number
-  local_departure: string
-  local_arrival: string
-  utc_departure: string
-  utc_arrival: string
+// --- Amadeus API response types ---
+interface AmadeusSegment {
+  departure: { iataCode: string; terminal?: string; at: string }
+  arrival: { iataCode: string; terminal?: string; at: string }
+  carrierCode: string
+  number: string
+  operating?: { carrierCode: string }
+  duration: string // ISO 8601 duration, e.g. "PT8H30M"
+  numberOfStops: number
 }
 
-export interface KiwiFlightResult {
+interface AmadeusItinerary {
+  duration: string
+  segments: AmadeusSegment[]
+}
+
+interface AmadeusFlightOffer {
   id: string
-  flyFrom: string
-  flyTo: string
-  cityFrom: string
-  cityTo: string
-  countryFrom: { code: string; name: string }
-  countryTo: { code: string; name: string }
-  price: number
-  deep_link: string
-  route: KiwiRouteSegment[]
-  duration: { departure: number; return: number; total: number }
-  quality: number
-  airlines: string[]
-  availability: { seats: number | null }
-  bags_price: Record<string, number>
-  booking_token: string
+  source: string
+  instantTicketingRequired: boolean
+  numberOfBookableSeats: number
+  itineraries: AmadeusItinerary[]
+  price: {
+    currency: string
+    total: string
+    base: string
+    grandTotal: string
+  }
+  validatingAirlineCodes: string[]
+  travelerPricings: any[]
 }
 
-export interface KiwiSearchResponse {
-  data: KiwiFlightResult[]
-  currency: string
-  _results: number
-  search_id: string
+interface AmadeusResponse {
+  data: AmadeusFlightOffer[]
+  dictionaries?: {
+    carriers?: Record<string, string>
+    aircraft?: Record<string, string>
+    currencies?: Record<string, string>
+  }
+  meta?: { count: number }
 }
 
 // --- Normalized types for the UI ---
@@ -75,7 +76,7 @@ export interface NormalizedItinerary {
   toCity: string
 }
 
-// Airline name lookup
+// --- Airline name lookup ---
 const AIRLINE_NAMES: Record<string, string> = {
   EK: 'Emirates', TK: 'Turkish Airlines', FR: 'Ryanair', W6: 'Wizz Air',
   G9: 'Air Arabia', TP: 'TAP Portugal', FZ: 'flydubai', QR: 'Qatar Airways',
@@ -89,50 +90,83 @@ const AIRLINE_NAMES: Record<string, string> = {
   AT: 'Royal Air Maroc', RJ: 'Royal Jordanian', GF: 'Gulf Air',
   WN: 'Southwest', DL: 'Delta', AA: 'American Airlines', UA: 'United',
   AC: 'Air Canada', AM: 'Aeromexico', LA: 'LATAM', AV: 'Avianca',
-  UX: 'Air Europa', S7: 'S7 Airlines', SK: 'SAS', AY: 'Finnair',
-  LO: 'LOT Polish', OK: 'Czech Airlines', RO: 'TAROM', JU: 'Air Serbia',
-  HV: 'Transavia', DY: 'Norwegian', BT: 'airBaltic', W4: 'Wizz Air Malta',
+  UX: 'Air Europa', SK: 'SAS', AY: 'Finnair', LO: 'LOT Polish',
+  DY: 'Norwegian', BT: 'airBaltic',
 }
 
-function getAirlineName(code: string): string {
+function getAirlineName(code: string, dictionaries?: Record<string, string>): string {
+  // Try Amadeus dictionary first, then our local map
+  if (dictionaries?.[code]) return dictionaries[code]
   return AIRLINE_NAMES[code] || code
 }
 
-// Normalize a Kiwi response into our UI-friendly format
-export function normalizeResults(data: KiwiSearchResponse): NormalizedItinerary[] {
-  return data.data.map((flight) => {
-    const segments: NormalizedSegment[] = flight.route.map((seg) => ({
-      airline: seg.airline,
-      airlineName: getAirlineName(seg.airline),
-      flightNumber: `${seg.airline}${seg.flight_no}`,
-      from: seg.flyFrom,
-      fromCity: seg.cityFrom,
-      to: seg.flyTo,
-      toCity: seg.cityTo,
-      departureTime: seg.local_departure,
-      arrivalTime: seg.local_arrival,
-      durationSeconds: (new Date(seg.utc_arrival).getTime() - new Date(seg.utc_departure).getTime()) / 1000,
-    }))
+// Parse ISO 8601 duration (PT8H30M) to seconds
+function parseDuration(iso: string): number {
+  if (!iso) return 0
+  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/)
+  if (!match) return 0
+  const hours = parseInt(match[1] || '0')
+  const minutes = parseInt(match[2] || '0')
+  return hours * 3600 + minutes * 60
+}
 
-    const uniqueAirlines = [...new Set(flight.airlines)]
+// Build a Google Flights booking link (since Amadeus doesn't provide deep links)
+function buildBookingLink(from: string, to: string, date: string, airlines: string[]): string {
+  const airline = airlines[0] || ''
+  return `https://www.google.com/travel/flights?q=flights+from+${from}+to+${to}+on+${date}+${airline}`
+}
+
+// Normalize Amadeus response into our UI format
+export function normalizeAmadeusResults(data: AmadeusResponse): NormalizedItinerary[] {
+  const carriers = data.dictionaries?.carriers || {}
+
+  return data.data.map((offer) => {
+    // We only use the first itinerary (outbound) for one-way; for return trips Amadeus includes both
+    const outbound = offer.itineraries[0]
+    const segments: NormalizedSegment[] = outbound.segments.map((seg) => {
+      const durationSec = parseDuration(seg.duration)
+      return {
+        airline: seg.carrierCode,
+        airlineName: getAirlineName(seg.carrierCode, carriers),
+        flightNumber: `${seg.carrierCode}${seg.number}`,
+        from: seg.departure.iataCode,
+        fromCity: seg.departure.iataCode, // Amadeus doesn't return city names in search
+        to: seg.arrival.iataCode,
+        toCity: seg.arrival.iataCode,
+        departureTime: seg.departure.at,
+        arrivalTime: seg.arrival.at,
+        durationSeconds: durationSec,
+      }
+    })
+
+    const uniqueAirlines = [...new Set(outbound.segments.map((s) => s.carrierCode))]
+    const totalDuration = parseDuration(outbound.duration)
+    const price = parseFloat(offer.price.grandTotal || offer.price.total)
+    const firstSeg = outbound.segments[0]
+    const lastSeg = outbound.segments[outbound.segments.length - 1]
 
     return {
-      id: flight.id,
-      price: flight.price,
-      currency: data.currency,
-      deepLink: flight.deep_link,
-      totalDurationSeconds: flight.duration.departure || flight.duration.total,
-      stops: flight.route.length - 1,
+      id: offer.id,
+      price,
+      currency: offer.price.currency,
+      deepLink: buildBookingLink(
+        firstSeg.departure.iataCode,
+        lastSeg.arrival.iataCode,
+        firstSeg.departure.at.split('T')[0],
+        uniqueAirlines,
+      ),
+      totalDurationSeconds: totalDuration,
+      stops: outbound.segments.length - 1,
       airlines: uniqueAirlines,
       segments,
-      quality: flight.quality,
-      seatsLeft: flight.availability?.seats ?? null,
-      bagsPrice: flight.bags_price || {},
+      quality: price / (totalDuration / 3600), // price per hour as quality metric
+      seatsLeft: offer.numberOfBookableSeats || null,
+      bagsPrice: {},
       isMultiAirline: uniqueAirlines.length > 1,
-      from: flight.flyFrom,
-      to: flight.flyTo,
-      fromCity: flight.cityFrom,
-      toCity: flight.cityTo,
+      from: firstSeg.departure.iataCode,
+      to: lastSeg.arrival.iataCode,
+      fromCity: firstSeg.departure.iataCode,
+      toCity: lastSeg.arrival.iataCode,
     }
   })
 }
@@ -141,13 +175,22 @@ export function normalizeResults(data: KiwiSearchResponse): NormalizedItinerary[
 export interface SearchParams {
   flyFrom: string
   flyTo: string
-  dateFrom: string // dd/mm/yyyy
-  dateTo?: string
+  dateFrom: string   // YYYY-MM-DD
+  dateTo?: string    // YYYY-MM-DD (optional for return)
   maxStopovers?: number
   currency?: string
   adults?: number
   limit?: number
   sort?: 'quality' | 'price' | 'duration' | 'date'
+  cabin?: string     // ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
+}
+
+// Map our cabin codes to Amadeus travelClass
+const CABIN_MAP: Record<string, string> = {
+  M: 'ECONOMY',
+  W: 'PREMIUM_ECONOMY',
+  C: 'BUSINESS',
+  F: 'FIRST',
 }
 
 export async function searchFlights(params: SearchParams): Promise<{
@@ -161,17 +204,16 @@ export async function searchFlights(params: SearchParams): Promise<{
     fly_to: params.flyTo,
     date_from: params.dateFrom,
     ...(params.dateTo && { date_to: params.dateTo }),
-    max_stopovers: String(params.maxStopovers ?? 2),
     curr: params.currency || 'USD',
     adults: String(params.adults ?? 1),
-    limit: String(params.limit ?? 20),
-    sort: params.sort || 'quality',
+    limit: String(params.limit ?? 15),
+    cabin: CABIN_MAP[params.cabin || 'M'] || 'ECONOMY',
   })
 
   const res = await fetch(`/api/search?${qs.toString()}`)
 
   if (res.status === 503) {
-    // API key not configured — return demo flag
+    // API credentials not configured
     return { results: [], currency: params.currency || 'USD', totalResults: 0, isDemo: true }
   }
 
@@ -180,20 +222,20 @@ export async function searchFlights(params: SearchParams): Promise<{
     throw new Error(err.error || `Search failed (${res.status})`)
   }
 
-  const data: KiwiSearchResponse = await res.json()
-  const results = normalizeResults(data)
+  const data: AmadeusResponse = await res.json()
+  const results = normalizeAmadeusResults(data)
 
   return {
     results,
-    currency: data.currency,
-    totalResults: data._results || results.length,
+    currency: data.data?.[0]?.price?.currency || params.currency || 'USD',
+    totalResults: data.meta?.count || results.length,
     isDemo: false,
   }
 }
 
-// Search airports via API
+// Search airports via API (uses built-in database on server)
 export async function searchAirportsAPI(term: string): Promise<AirportOption[]> {
-  if (term.length < 2) return []
+  if (term.length < 1) return []
 
   const res = await fetch(`/api/locations?term=${encodeURIComponent(term)}&limit=8`)
   if (!res.ok) return []

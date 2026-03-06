@@ -9,7 +9,7 @@ import { searchFlights, type NormalizedItinerary, type NormalizedSegment } from 
 import { buildGoogleFlightsUrl, buildKiwiUrl, buildSegmentBookingUrl, getAirlineUrl, hasAirlineWebsite } from '../utils/booking'
 import { generateDemoItineraries } from '../data/demoData'
 import { convertPrice, getCurrencyCode } from '../utils/currency'
-import { formatDisplayDate, getDatePlaceholder, toKiwiDate, parseDateInput, todayISO } from '../utils/dateFormat'
+import { formatDisplayDate, getDatePlaceholder, todayISO } from '../utils/dateFormat'
 
 // --- Types ---
 type SortBy = 'best_value' | 'cheapest' | 'fastest' | 'fewest_stops'
@@ -204,13 +204,14 @@ export default function SearchPage() {
       const res = await searchFlights({
         flyFrom: from,
         flyTo: to,
-        dateFrom: toKiwiDate(dep),
-        dateTo: ret ? toKiwiDate(ret) : undefined,
+        dateFrom: dep,
+        dateTo: ret || undefined,
         currency: currCode,
         adults: pax,
         maxStopovers: 2,
         sort: 'quality',
-        limit: 20,
+        limit: 15,
+        cabin: cabin,
       })
 
       if (res.isDemo || res.results.length === 0) {
