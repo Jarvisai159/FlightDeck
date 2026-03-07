@@ -3,6 +3,7 @@ import Navbar from './components/layout/Navbar'
 import AdPanel from './components/layout/AdPanel'
 import HistoryPage from './pages/HistoryPage'
 import SearchPage from './pages/SearchPage'
+import TrainsPage from './pages/TrainsPage'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/search" replace />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/trains" element={<TrainsPage />} />
             <Route path="/history" element={<HistoryPage />} />
             {/* Redirect old status route */}
             <Route path="/status" element={<Navigate to="/search" replace />} />
