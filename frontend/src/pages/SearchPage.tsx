@@ -1,309 +1,674 @@
-import { useState } from 'react'
-import { Search, Plane, Clock, AlertTriangle, ArrowRight, ExternalLink, MapPin, Shield, Star } from 'lucide-react'
-import { demoItineraries, type Itinerary } from '../data/demoData'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import {
+  Search, Plane, AlertTriangle, ExternalLink, MapPin,
+  Loader2, RefreshCw, Clock, Users, ChevronDown, ArrowRightLeft, Info,
+} from 'lucide-react'
+import AirportAutocomplete from '../components/ui/AirportAutocomplete'
+import type { AirportOption } from '../data/airports'
+import { searchFlights, type NormalizedItinerary, type NormalizedSegment } from '../services/flightApi'
+import { buildGoogleFlightsUrl, buildSegmentBookingUrl, buildSkyscannerUrl, getAirlineUrl, hasAirlineWebsite } from '../utils/booking'
+import { generateDemoItineraries } from '../data/demoData'
+import { getCurrencyCode, formatPrice } from '../utils/currency'
+import { formatDisplayDate, getDatePlaceholder, todayISO } from '../utils/dateFormat'
 
-type SortBy = 'best_value' | 'cheapest' | 'fastest' | 'fewest_stops' | 'most_reliable'
+// --- Types ---
+type SortBy = 'best_value' | 'cheapest' | 'fastest' | 'fewest_stops'
+type CabinClass = 'M' | 'W' | 'C' | 'F'
 
-const sortOptions: { key: SortBy; label: string }[] = [
-  { key: 'best_value', label: 'Best Value' },
+const SORT_OPTIONS: { key: SortBy; label: string }[] = [
+  { key: 'best_value', label: 'Best' },
   { key: 'cheapest', label: 'Cheapest' },
   { key: 'fastest', label: 'Fastest' },
   { key: 'fewest_stops', label: 'Fewest Stops' },
-  { key: 'most_reliable', label: 'Most Reliable' },
 ]
 
-function sortItineraries(items: Itinerary[], by: SortBy): Itinerary[] {
+const CABIN_CLASSES: { value: CabinClass; label: string }[] = [
+  { value: 'M', label: 'Economy' },
+  { value: 'W', label: 'Premium Economy' },
+  { value: 'C', label: 'Business' },
+  { value: 'F', label: 'First Class' },
+]
+
+const REFRESH_INTERVAL = 15 * 60 * 1000
+
+// --- Helpers ---
+function formatDuration(seconds: number) {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  return `${h}h ${m > 0 ? `${m}m` : ''}`
+}
+
+function formatDurationMins(mins: number) {
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return `${h}h ${m > 0 ? `${m}m` : ''}`
+}
+
+function formatTime(iso: string) {
+  try {
+    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+  } catch {
+    return '--:--'
+  }
+}
+
+const datePlaceholder = getDatePlaceholder()
+
+function sortResults(items: NormalizedItinerary[], by: SortBy): NormalizedItinerary[] {
+  const sorted = [...items]
+  switch (by) {
+    case 'cheapest': return sorted.sort((a, b) => a.price - b.price)
+    case 'fastest': return sorted.sort((a, b) => a.totalDurationSeconds - b.totalDurationSeconds)
+    case 'fewest_stops': return sorted.sort((a, b) => a.stops - b.stops)
+    default: return sorted.sort((a, b) => a.quality - b.quality)
+  }
+}
+
+function sortDemo(items: ReturnType<typeof generateDemoItineraries>, by: SortBy) {
   const sorted = [...items]
   switch (by) {
     case 'cheapest': return sorted.sort((a, b) => a.total_price - b.total_price)
     case 'fastest': return sorted.sort((a, b) => a.total_duration_minutes - b.total_duration_minutes)
     case 'fewest_stops': return sorted.sort((a, b) => a.total_stops - b.total_stops)
-    case 'most_reliable': return sorted.sort((a, b) => b.reliability_score - a.reliability_score)
     default: return sorted.sort((a, b) => b.best_value_score - a.best_value_score)
   }
 }
 
-function formatDuration(mins: number) {
-  const h = Math.floor(mins / 60)
-  const m = mins % 60
-  return `${h}h ${m > 0 ? m + 'm' : ''}`
-}
+// --- Skyscanner-style Flight Card (Real API) ---
+function FlightCard({
+  itin,
+  currency,
+  departureDate,
+  returnDate,
+  cabinClass,
+  passengers,
+}: {
+  itin: NormalizedItinerary
+  currency: string
+  departureDate: string
+  returnDate: string
+  cabinClass: CabinClass
+  passengers: number
+}) {
+  const firstSeg = itin.segments[0]
+  const lastSeg = itin.segments[itin.segments.length - 1]
+  const mainAirline = firstSeg.airline
+  const stopsLabel = itin.stops === 0 ? 'Direct' : `${itin.stops} stop${itin.stops > 1 ? 's' : ''}`
+  const viaAirports = itin.stops > 0
+    ? itin.segments.slice(0, -1).map(s => s.to).join(', ')
+    : null
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-}
-
-const reliabilityColors: Record<string, string> = {
-  green: 'text-status-ontime bg-status-ontime/10 border-status-ontime/30',
-  amber: 'text-status-minor-delay bg-status-minor-delay/10 border-status-minor-delay/30',
-  red: 'text-status-major-delay bg-status-major-delay/10 border-status-major-delay/30',
-}
-
-function SegmentTimeline({ itinerary }: { itinerary: Itinerary }) {
   return (
-    <div className="flex items-center gap-1 flex-wrap">
-      {itinerary.segments.map((seg, i) => (
-        <div key={i} className="flex items-center gap-1">
-          {i > 0 && (
-            <div className="flex flex-col items-center px-2">
-              <div className="w-px h-3 bg-border-light" />
-              <span className="text-[9px] font-mono text-text-muted bg-bg-tertiary px-1.5 py-0.5 rounded">
-                {formatDuration(itinerary.layover_durations[i - 1])} layover
+    <div className="bg-bg-secondary border border-border hover:border-border-light rounded-xl transition-all overflow-hidden">
+      <div className="flex items-stretch">
+        {/* Main flight info */}
+        <div className="flex-1 p-4 md:p-5">
+          {/* Airline row */}
+          <div className="flex items-center gap-2.5 mb-3">
+            <img
+              src={`https://pics.avs.io/36/36/${mainAirline}.png`}
+              alt=""
+              className="w-7 h-7 rounded"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+            <span className="text-xs text-text-secondary font-medium">
+              {firstSeg.airlineName}
+              {itin.isMultiAirline && (
+                <span className="text-text-muted"> + {itin.airlines.length - 1} other</span>
+              )}
+            </span>
+            {itin.segments.map((seg, i) => (
+              <span key={i} className="text-[10px] text-text-muted font-mono">
+                {seg.flightNumber}{i < itin.segments.length - 1 ? ', ' : ''}
               </span>
-              <div className="w-px h-3 bg-border-light" />
+            ))}
+          </div>
+
+          {/* Time / Route / Duration row */}
+          <div className="flex items-center gap-4">
+            <div className="text-left min-w-[60px]">
+              <p className="text-xl font-bold text-text-primary font-mono leading-tight">
+                {formatTime(firstSeg.departureTime)}
+              </p>
+              <p className="text-xs text-text-muted font-mono">{firstSeg.from}</p>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center px-2">
+              <span className="text-[11px] text-text-muted mb-1">
+                {formatDuration(itin.totalDurationSeconds)}
+              </span>
+              <div className="relative w-full flex items-center">
+                <div className="h-[2px] w-full bg-border rounded" />
+                {itin.stops > 0 && itin.segments.slice(0, -1).map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-2 h-2 rounded-full bg-accent border-2 border-bg-secondary"
+                    style={{ left: `${((i + 1) / itin.segments.length) * 100}%`, transform: 'translateX(-50%)' }}
+                  />
+                ))}
+              </div>
+              <span className={`text-[11px] mt-1 ${itin.stops === 0 ? 'text-emerald-400 font-medium' : 'text-text-muted'}`}>
+                {stopsLabel}
+                {viaAirports && <span className="text-text-muted"> via {viaAirports}</span>}
+              </span>
+            </div>
+
+            <div className="text-right min-w-[60px]">
+              <p className="text-xl font-bold text-text-primary font-mono leading-tight">
+                {formatTime(lastSeg.arrivalTime)}
+              </p>
+              <p className="text-xs text-text-muted font-mono">{lastSeg.to}</p>
+            </div>
+          </div>
+
+          {/* Multi-airline booking warning */}
+          {itin.isMultiAirline && (
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <p className="text-[10px] text-amber-400 flex items-center gap-1 mb-1.5">
+                <AlertTriangle className="w-3 h-3" />
+                Separate bookings — book each leg:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {itin.segments.map((seg, i) => (
+                  <a
+                    key={i}
+                    href={buildSegmentBookingUrl(seg.airline, seg.from, seg.to, seg.departureTime)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-medium text-accent bg-accent/5 hover:bg-accent/10 border border-accent/20 px-2 py-1 rounded flex items-center gap-1 transition-colors"
+                  >
+                    {seg.airlineName}: {seg.from}→{seg.to}
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                ))}
+              </div>
             </div>
           )}
-          <div className="flex items-center gap-2 bg-bg-tertiary/50 rounded-lg px-3 py-2">
-            <div className="text-center">
-              <p className="font-mono text-sm font-bold">{seg.departure_airport}</p>
-              <p className="text-[10px] text-text-muted">{formatTime(seg.departure_time)}</p>
-            </div>
-            <div className="flex flex-col items-center px-2">
-              <span className="text-[9px] text-text-muted">{seg.airline_iata} {seg.flight_number?.replace(seg.airline_iata, '')}</span>
-              <div className="flex items-center gap-1 my-0.5">
-                <div className="h-px w-6 bg-accent" />
-                <Plane className="w-3 h-3 text-accent" />
-                <div className="h-px w-6 bg-accent" />
-              </div>
-              <span className="text-[9px] text-text-muted">{formatDuration(seg.duration_minutes)}</span>
-            </div>
-            <div className="text-center">
-              <p className="font-mono text-sm font-bold">{seg.arrival_airport}</p>
-              <p className="text-[10px] text-text-muted">{formatTime(seg.arrival_time)}</p>
-            </div>
-            {seg.reliability_color && (
-              <div className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${reliabilityColors[seg.reliability_color]}`}>
-                {seg.on_time_percentage}%
-              </div>
-            )}
-          </div>
+
+          {itin.seatsLeft !== null && itin.seatsLeft > 0 && itin.seatsLeft <= 5 && (
+            <p className="mt-2 text-[10px] text-red-400 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              Only {itin.seatsLeft} seat{itin.seatsLeft > 1 ? 's' : ''} left
+            </p>
+          )}
         </div>
-      ))}
+
+        {/* Price + Book column */}
+        <div className="flex flex-col items-center justify-center bg-bg-primary/30 border-l border-border px-5 py-4 min-w-[150px]">
+          <p className="text-lg font-bold text-text-secondary font-mono leading-tight flex items-center gap-1">
+            <span className="text-[10px] text-text-muted font-normal">from</span>
+            ~{formatPrice(itin.price, itin.currency)}
+          </p>
+          {passengers > 1 && (
+            <p className="text-[10px] text-text-muted mt-0.5">{passengers} passengers</p>
+          )}
+          <a
+            href={buildGoogleFlightsUrl(itin.from, itin.to, departureDate, cabinClass, passengers)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 w-full bg-accent hover:bg-accent-hover text-white text-sm font-semibold py-2.5 px-5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+          >
+            Book →
+          </a>
+          <a
+            href={buildSkyscannerUrl(itin.from, itin.to, departureDate, returnDate || undefined)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1.5 text-[10px] text-text-muted hover:text-accent transition-colors"
+          >
+            Compare on Skyscanner
+          </a>
+        </div>
+      </div>
     </div>
   )
 }
 
+// --- Skyscanner-style Flight Card (Demo data) ---
+function DemoFlightCard({
+  itin,
+  departureDate,
+  returnDate,
+  cabinClass,
+  passengers,
+}: {
+  itin: ReturnType<typeof generateDemoItineraries>[0]
+  departureDate: string
+  returnDate: string
+  cabinClass: CabinClass
+  passengers: number
+}) {
+  const firstSeg = itin.segments[0]
+  const lastSeg = itin.segments[itin.segments.length - 1]
+  const mainAirline = firstSeg.airline_iata
+  const stopsLabel = itin.total_stops === 0 ? 'Direct' : `${itin.total_stops} stop${itin.total_stops > 1 ? 's' : ''}`
+  const viaAirports = itin.total_stops > 0
+    ? itin.segments.slice(0, -1).map(s => s.arrival_airport).join(', ')
+    : null
+
+  return (
+    <div className="bg-bg-secondary border border-border hover:border-border-light rounded-xl transition-all overflow-hidden">
+      <div className="flex items-stretch">
+        <div className="flex-1 p-4 md:p-5">
+          {/* Airline row */}
+          <div className="flex items-center gap-2.5 mb-3">
+            <img
+              src={`https://pics.avs.io/36/36/${mainAirline}.png`}
+              alt=""
+              className="w-7 h-7 rounded"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+            <span className="text-xs text-text-secondary font-medium">
+              {firstSeg.airline_name}
+              {itin.airlines_involved.length > 1 && (
+                <span className="text-text-muted"> + {itin.airlines_involved.length - 1} other</span>
+              )}
+            </span>
+            {itin.segments.map((seg, i) => (
+              <span key={i} className="text-[10px] text-text-muted font-mono">
+                {seg.flight_number}{i < itin.segments.length - 1 ? ', ' : ''}
+              </span>
+            ))}
+          </div>
+
+          {/* Time / Route / Duration row */}
+          <div className="flex items-center gap-4">
+            <div className="text-left min-w-[60px]">
+              <p className="text-xl font-bold text-text-primary font-mono leading-tight">
+                {formatTime(firstSeg.departure_time)}
+              </p>
+              <p className="text-xs text-text-muted font-mono">{firstSeg.departure_airport}</p>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center px-2">
+              <span className="text-[11px] text-text-muted mb-1">
+                {formatDurationMins(itin.total_duration_minutes)}
+              </span>
+              <div className="relative w-full flex items-center">
+                <div className="h-[2px] w-full bg-border rounded" />
+                {itin.total_stops > 0 && itin.segments.slice(0, -1).map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-2 h-2 rounded-full bg-accent border-2 border-bg-secondary"
+                    style={{ left: `${((i + 1) / itin.segments.length) * 100}%`, transform: 'translateX(-50%)' }}
+                  />
+                ))}
+              </div>
+              <span className={`text-[11px] mt-1 ${itin.total_stops === 0 ? 'text-emerald-400 font-medium' : 'text-text-muted'}`}>
+                {stopsLabel}
+                {viaAirports && <span className="text-text-muted"> via {viaAirports}</span>}
+              </span>
+            </div>
+
+            <div className="text-right min-w-[60px]">
+              <p className="text-xl font-bold text-text-primary font-mono leading-tight">
+                {formatTime(lastSeg.arrival_time)}
+              </p>
+              <p className="text-xs text-text-muted font-mono">{lastSeg.arrival_airport}</p>
+            </div>
+          </div>
+
+          {/* Multi-airline warning */}
+          {itin.airlines_involved.length > 1 && (
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <p className="text-[10px] text-amber-400 flex items-center gap-1 mb-1.5">
+                <AlertTriangle className="w-3 h-3" />
+                Separate bookings — book each leg:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {itin.booking_links.map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-medium text-accent bg-accent/5 hover:bg-accent/10 border border-accent/20 px-2 py-1 rounded flex items-center gap-1 transition-colors"
+                  >
+                    {link.airline}: {itin.segments[link.segment_index]?.departure_airport}→{itin.segments[link.segment_index]?.arrival_airport}
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {itin.risk_warnings.length > 0 && (
+            <div className="mt-2 space-y-0.5">
+              {itin.risk_warnings.map((w, i) => (
+                <p key={i} className="text-[10px] text-amber-400/80 flex items-start gap-1">
+                  <AlertTriangle className="w-3 h-3 mt-px shrink-0" /> {w}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Price + Book column */}
+        <div className="flex flex-col items-center justify-center bg-bg-primary/30 border-l border-border px-5 py-4 min-w-[150px]">
+          <p className="text-lg font-bold text-text-secondary font-mono leading-tight flex items-center gap-1">
+            <span className="text-[10px] text-text-muted font-normal">from</span>
+            ~{formatPrice(itin.total_price, itin.currency)}
+          </p>
+          <a
+            href={buildGoogleFlightsUrl(firstSeg.departure_airport, lastSeg.arrival_airport, departureDate, cabinClass, passengers)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 w-full bg-accent hover:bg-accent-hover text-white text-sm font-semibold py-2.5 px-5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+          >
+            Book →
+          </a>
+          <a
+            href={buildSkyscannerUrl(firstSeg.departure_airport, lastSeg.arrival_airport, departureDate, returnDate || undefined)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1.5 text-[10px] text-text-muted hover:text-accent transition-colors"
+          >
+            Compare on Skyscanner
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================
+// MAIN COMPONENT
+// ============================
 export default function SearchPage() {
-  const [origin, setOrigin] = useState('DXB')
-  const [destination, setDestination] = useState('LIS')
+  const [fromAirport, setFromAirport] = useState<AirportOption | null>(null)
+  const [toAirport, setToAirport] = useState<AirportOption | null>(null)
+  const [departureDate, setDepartureDate] = useState(todayISO())
+  const [returnDate, setReturnDate] = useState('')
+  const [cabinClass, setCabinClass] = useState<CabinClass>('M')
+  const [passengers, setPassengers] = useState(1)
+
+  const [results, setResults] = useState<NormalizedItinerary[]>([])
+  const [demoResults, setDemoResults] = useState<ReturnType<typeof generateDemoItineraries>>([])
+  const [isDemo, setIsDemo] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
   const [sortBy, setSortBy] = useState<SortBy>('best_value')
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [nextRefresh, setNextRefresh] = useState<number>(0)
 
-  const results = sortItineraries(demoItineraries, sortBy)
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval>>()
+  const countdownRef = useRef<ReturnType<typeof setInterval>>()
+  const searchParamsRef = useRef<{ from: string; to: string; dep: string; ret: string; cabin: CabinClass; pax: number } | null>(null)
+
+  const currCode = getCurrencyCode()
+  const isReturn = returnDate.length > 0
+
+  const doSearch = useCallback(async (from: string, to: string, dep: string, ret: string, cabin: CabinClass, pax: number) => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await searchFlights({
+        flyFrom: from,
+        flyTo: to,
+        dateFrom: dep,
+        dateTo: ret || undefined,
+        currency: currCode,
+        adults: pax,
+        maxStopovers: 2,
+        sort: 'quality',
+        limit: 15,
+        cabin: cabin,
+      })
+
+      if (res.isDemo || res.results.length === 0) {
+        setDemoResults(generateDemoItineraries(from, to, dep))
+        setResults([])
+        setIsDemo(true)
+      } else {
+        setResults(res.results)
+        setIsDemo(false)
+      }
+      setLastUpdated(new Date())
+      setSearched(true)
+    } catch (err: any) {
+      setError(err.message || 'Search failed')
+      setDemoResults(generateDemoItineraries(from, to, dep))
+      setResults([])
+      setIsDemo(true)
+      setSearched(true)
+    } finally {
+      setLoading(false)
+    }
+  }, [currCode])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    setSearched(true)
+    if (!fromAirport || !toAirport) {
+      setError('Please select both departure and arrival airports')
+      return
+    }
+    if (!departureDate) {
+      setError('Please select a departure date')
+      return
+    }
+    const params = { from: fromAirport.iata, to: toAirport.iata, dep: departureDate, ret: returnDate, cabin: cabinClass, pax: passengers }
+    searchParamsRef.current = params
+    doSearch(params.from, params.to, params.dep, params.ret, params.cabin, params.pax)
+    startRefreshTimer()
   }
 
-  const toggleCompare = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else if (next.size < 3) next.add(id)
-      return next
-    })
+  const startRefreshTimer = () => {
+    if (refreshTimerRef.current) clearInterval(refreshTimerRef.current)
+    if (countdownRef.current) clearInterval(countdownRef.current)
+    setNextRefresh(REFRESH_INTERVAL / 1000)
+    countdownRef.current = setInterval(() => {
+      setNextRefresh((prev) => (prev > 0 ? prev - 1 : 0))
+    }, 1000)
+    refreshTimerRef.current = setInterval(() => {
+      if (searchParamsRef.current) {
+        const p = searchParamsRef.current
+        doSearch(p.from, p.to, p.dep, p.ret, p.cabin, p.pax)
+        setNextRefresh(REFRESH_INTERVAL / 1000)
+      }
+    }, REFRESH_INTERVAL)
   }
+
+  const handleManualRefresh = () => {
+    if (searchParamsRef.current) {
+      const p = searchParamsRef.current
+      doSearch(p.from, p.to, p.dep, p.ret, p.cabin, p.pax)
+      startRefreshTimer()
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current)
+      if (countdownRef.current) clearInterval(countdownRef.current)
+    }
+  }, [])
+
+  const handleSwap = () => {
+    const tmp = fromAirport
+    setFromAirport(toAirport)
+    setToAirport(tmp)
+  }
+
+  const sortedResults = useMemo(() => sortResults(results, sortBy), [results, sortBy])
+  const sortedDemoResults = useMemo(() => sortDemo(demoResults, sortBy), [demoResults, sortBy])
+  const resultCount = isDemo ? sortedDemoResults.length : sortedResults.length
+
+  const refreshMin = Math.floor(nextRefresh / 60)
+  const refreshSec = nextRefresh % 60
+
+  // Summary stats for sort tabs
+  const cheapestPrice = isDemo
+    ? (demoResults.length > 0 ? Math.min(...demoResults.map(r => r.total_price)) : 0)
+    : (results.length > 0 ? Math.min(...results.map(r => r.price)) : 0)
+  const cheapestCurrency = isDemo ? (demoResults[0]?.currency || 'EUR') : (results[0]?.currency || currCode)
+  const fastestDuration = isDemo
+    ? (demoResults.length > 0 ? Math.min(...demoResults.map(r => r.total_duration_minutes)) : 0)
+    : (results.length > 0 ? Math.min(...results.map(r => r.totalDurationSeconds)) : 0)
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Search Form */}
-      <form onSubmit={handleSearch} className="bg-bg-secondary border border-border rounded-xl p-5">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[140px]">
-            <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block mb-1.5">From</label>
-            <input
-              type="text"
-              value={origin}
-              onChange={e => setOrigin(e.target.value.toUpperCase())}
-              placeholder="DXB"
-              maxLength={3}
-              className="w-full bg-bg-primary border border-border rounded-lg px-3 py-2.5 font-mono text-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
-            />
+    <div className="space-y-5 animate-fade-in">
+      {/* SEARCH FORM */}
+      <form onSubmit={handleSearch} className="bg-bg-secondary border border-border rounded-xl p-4 md:p-5">
+        <div className="flex items-end gap-2 flex-wrap">
+          <AirportAutocomplete label="From" value={fromAirport} onChange={setFromAirport} placeholder="City or airport code" />
+          <button type="button" onClick={handleSwap} className="mb-1 p-2 rounded-lg text-text-muted hover:text-accent hover:bg-bg-tertiary transition-colors" title="Swap">
+            <ArrowRightLeft className="w-4 h-4" />
+          </button>
+          <AirportAutocomplete label="To" value={toAirport} onChange={setToAirport} placeholder="City or airport code" />
+        </div>
+
+        <div className="flex items-end gap-2 flex-wrap mt-3">
+          <div className="flex-1 min-w-[130px]">
+            <label className="text-[10px] font-medium text-text-muted uppercase tracking-wider block mb-1">Departure</label>
+            <div className="relative">
+              <input type="date" value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} min={todayISO()}
+                className="w-full bg-bg-primary border border-border rounded-lg px-3 py-2.5 text-sm text-transparent focus:outline-none focus:border-accent/50 cursor-pointer" style={{ colorScheme: 'dark' }} />
+              <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
+                <span className="text-sm font-mono text-text-primary">{departureDate ? formatDisplayDate(departureDate) : datePlaceholder}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center justify-center">
-            <ArrowRight className="w-5 h-5 text-text-muted" />
+
+          <div className="flex-1 min-w-[130px]">
+            <label className="text-[10px] font-medium text-text-muted uppercase tracking-wider block mb-1">Return <span className="text-text-muted/50">(optional)</span></label>
+            <div className="relative">
+              <input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} min={departureDate || todayISO()}
+                className="w-full bg-bg-primary border border-border rounded-lg px-3 py-2.5 text-sm text-transparent focus:outline-none focus:border-accent/50 cursor-pointer" style={{ colorScheme: 'dark' }} />
+              <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
+                <span className={`text-sm font-mono ${returnDate ? 'text-text-primary' : 'text-accent/60'}`}>{returnDate ? formatDisplayDate(returnDate) : 'One-way'}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 min-w-[140px]">
-            <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block mb-1.5">To</label>
-            <input
-              type="text"
-              value={destination}
-              onChange={e => setDestination(e.target.value.toUpperCase())}
-              placeholder="LIS"
-              maxLength={3}
-              className="w-full bg-bg-primary border border-border rounded-lg px-3 py-2.5 font-mono text-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
-            />
+
+          <div className="min-w-[130px]">
+            <label className="text-[10px] font-medium text-text-muted uppercase tracking-wider block mb-1">Class</label>
+            <div className="relative">
+              <select value={cabinClass} onChange={(e) => setCabinClass(e.target.value as CabinClass)}
+                className="w-full bg-bg-primary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent/50 appearance-none pr-7">
+                {CABIN_CLASSES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+            </div>
           </div>
-          <div className="flex-1 min-w-[140px]">
-            <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block mb-1.5">Date</label>
-            <input
-              type="date"
-              defaultValue="2026-03-10"
-              className="w-full bg-bg-primary border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
-            />
+
+          <div className="min-w-[90px]">
+            <label className="text-[10px] font-medium text-text-muted uppercase tracking-wider block mb-1">Passengers</label>
+            <div className="relative">
+              <select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))}
+                className="w-full bg-bg-primary border border-border rounded-lg pl-8 pr-7 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent/50 appearance-none">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <Users className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+            </div>
           </div>
-          <button
-            type="submit"
-            className="bg-accent hover:bg-accent-hover text-white px-8 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
-          >
-            <Search className="w-4 h-4" />
+
+          <button type="submit" disabled={loading}
+            className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             Search
           </button>
         </div>
 
-        {/* Search Meta */}
-        <div className="flex items-center gap-2 mt-3 text-xs text-text-muted">
-          <MapPin className="w-3 h-3" />
-          <span>Also checking nearby airports: SHJ, AUH, OPO, FAO</span>
+        <div className="flex items-center justify-between mt-2.5">
+          <p className="flex items-center gap-1.5 text-[10px] text-text-muted">
+            <MapPin className="w-3 h-3" />
+            {!isReturn ? 'One-way trip' : 'Round trip'} · {currCode}
+          </p>
         </div>
+
+        {error && (
+          <p className="mt-2 text-xs text-red-400 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" /> {error}
+          </p>
+        )}
       </form>
 
-      {/* Results */}
+      {/* RESULTS */}
       {searched && (
-        <div className="space-y-4 animate-fade-in">
-          {/* Sort + Compare Bar */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              {sortOptions.map(opt => (
+        <div className="space-y-3 animate-fade-in">
+          {/* Sort tabs */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex gap-1 bg-bg-secondary border border-border rounded-lg p-1">
+              {SORT_OPTIONS.map((opt) => (
                 <button
                   key={opt.key}
                   onClick={() => setSortBy(opt.key)}
-                  className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors ${
-                    sortBy === opt.key
-                      ? 'bg-accent text-white'
-                      : 'bg-bg-secondary text-text-muted hover:text-text-primary border border-border'
+                  className={`text-xs px-3 py-2 rounded-md font-medium transition-colors ${
+                    sortBy === opt.key ? 'bg-accent text-white' : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
                   }`}
                 >
-                  {opt.label}
+                  <span className="block">{opt.label}</span>
+                  {opt.key === 'cheapest' && searched && cheapestPrice > 0 && (
+                    <span className="block text-[10px] opacity-80">{formatPrice(cheapestPrice, cheapestCurrency)}</span>
+                  )}
+                  {opt.key === 'fastest' && searched && fastestDuration > 0 && (
+                    <span className="block text-[10px] opacity-80">{isDemo ? formatDurationMins(fastestDuration) : formatDuration(fastestDuration)}</span>
+                  )}
                 </button>
               ))}
             </div>
-            <span className="text-xs text-text-muted font-mono">
-              {results.length} results · 1.2s
-            </span>
+
+            <div className="flex items-center gap-3">
+              {isDemo && (
+                <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">
+                  <Info className="w-3 h-3" /> Demo data
+                </span>
+              )}
+              {lastUpdated && (
+                <span className="text-[10px] text-text-muted flex items-center gap-1">
+                  <Clock className="w-3 h-3" />{refreshMin}:{String(refreshSec).padStart(2, '0')}
+                </span>
+              )}
+              <button onClick={handleManualRefresh} disabled={loading} className="text-text-muted hover:text-accent transition-colors disabled:opacity-50" title="Refresh">
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <span className="text-[10px] text-text-muted font-mono">{resultCount} results</span>
+            </div>
           </div>
 
-          {/* Compare Bar */}
-          {selectedIds.size > 0 && (
-            <div className="bg-accent/10 border border-accent/30 rounded-lg px-4 py-2 flex items-center justify-between">
-              <span className="text-xs text-accent font-semibold">
-                {selectedIds.size}/3 selected for comparison
-              </span>
-              <button
-                onClick={() => setSelectedIds(new Set())}
-                className="text-xs text-accent hover:underline"
-              >
-                Clear
-              </button>
+          {/* Price disclaimer */}
+          {!loading && resultCount > 0 && (
+            <div className="flex items-start gap-2 bg-blue-500/5 border border-blue-500/15 rounded-lg px-3 py-2.5">
+              <Info className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-blue-300/80 leading-relaxed">
+                Prices shown are approximate starting fares. Click <strong>Book</strong> to see exact prices on Google Flights or compare on Skyscanner.
+              </p>
             </div>
           )}
 
-          {/* Itinerary Cards */}
-          {results.map(itin => (
-            <div
-              key={itin.id}
-              className={`bg-bg-secondary border rounded-xl p-5 transition-all ${
-                selectedIds.has(itin.id)
-                  ? 'border-accent shadow-lg shadow-accent/10'
-                  : 'border-border hover:border-border-light'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                {/* Left: Timeline */}
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {itin.airlines_involved.map(a => (
-                      <span key={a} className="text-xs font-semibold bg-bg-tertiary text-text-secondary px-2 py-0.5 rounded">{a}</span>
-                    ))}
-                    {itin.total_stops === 0 && (
-                      <span className="text-[10px] font-bold text-status-ontime bg-status-ontime/10 px-2 py-0.5 rounded">DIRECT</span>
-                    )}
-                    {itin.uses_nearby_airports && (
-                      <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> ALT AIRPORT
-                      </span>
-                    )}
-                  </div>
-
-                  <SegmentTimeline itinerary={itin} />
-
-                  {/* Warnings */}
-                  {itin.risk_warnings.length > 0 && (
-                    <div className="space-y-1">
-                      {itin.risk_warnings.map((w, i) => (
-                        <div key={i} className="flex items-start gap-1.5 text-xs text-status-minor-delay">
-                          <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
-                          <span>{w}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {itin.nearby_airport_note && (
-                    <p className="text-xs text-accent flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {itin.nearby_airport_note}
-                    </p>
-                  )}
-                </div>
-
-                {/* Right: Price + Actions */}
-                <div className="text-right shrink-0 space-y-2 min-w-[130px]">
-                  <div>
-                    <p className="font-mono text-2xl font-bold text-text-primary">
-                      {itin.currency === 'EUR' ? '€' : '$'}{itin.total_price}
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      {formatDuration(itin.total_duration_minutes)} · {itin.total_stops === 0 ? 'Direct' : `${itin.total_stops} stop${itin.total_stops > 1 ? 's' : ''}`}
-                    </p>
-                  </div>
-
-                  {/* Scores */}
-                  <div className="flex items-center justify-end gap-2">
-                    <div className="flex items-center gap-1" title="Best value score">
-                      <Star className="w-3 h-3 text-accent" />
-                      <span className="text-xs font-mono text-accent">{(itin.best_value_score * 100).toFixed(0)}</span>
-                    </div>
-                    <div className="flex items-center gap-1" title="Reliability score">
-                      <Shield className="w-3 h-3 text-status-ontime" />
-                      <span className="text-xs font-mono text-status-ontime">{(itin.reliability_score * 100).toFixed(0)}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex flex-col gap-1.5">
-                    <button className="bg-accent hover:bg-accent-hover text-white text-xs font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-1.5">
-                      Book <ExternalLink className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => toggleCompare(itin.id)}
-                      className={`text-xs py-1.5 px-4 rounded-lg border transition-colors ${
-                        selectedIds.has(itin.id)
-                          ? 'border-accent text-accent bg-accent/10'
-                          : 'border-border text-text-muted hover:text-text-primary hover:border-border-light'
-                      }`}
-                    >
-                      {selectedIds.has(itin.id) ? 'Selected' : 'Compare'}
-                    </button>
-                  </div>
-                </div>
-              </div>
+          {loading && (
+            <div className="flex items-center justify-center py-12 gap-2">
+              <Loader2 className="w-6 h-6 text-accent animate-spin" />
+              <span className="text-sm text-text-muted">Searching flights...</span>
             </div>
+          )}
+
+          {!isDemo && !loading && sortedResults.map((itin) => (
+            <FlightCard key={itin.id} itin={itin} currency={currCode} departureDate={departureDate} returnDate={returnDate} cabinClass={cabinClass} passengers={passengers} />
           ))}
+
+          {isDemo && !loading && sortedDemoResults.map((itin) => (
+            <DemoFlightCard key={itin.id} itin={itin} departureDate={departureDate} returnDate={returnDate} cabinClass={cabinClass} passengers={passengers} />
+          ))}
+
+          {!loading && resultCount === 0 && (
+            <div className="text-center py-10">
+              <Plane className="w-6 h-6 text-text-muted mx-auto mb-2" />
+              <p className="text-sm text-text-secondary">No flights found for this route.</p>
+              <p className="text-xs text-text-muted mt-1">Try different dates or nearby airports.</p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Empty state */}
-      {!searched && (
-        <div className="text-center py-20">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-bg-secondary border border-border mb-4">
-            <Search className="w-8 h-8 text-text-muted" />
-          </div>
-          <h2 className="text-lg font-semibold text-text-secondary mb-1">Find creative flight combinations</h2>
-          <p className="text-sm text-text-muted max-w-md mx-auto">
-            We search multiple airlines and nearby airports to find routes that traditional booking sites miss — including multi-airline combos with up to 2 stops.
+      {!searched && !loading && (
+        <div className="text-center py-16">
+          <Plane className="w-8 h-8 text-text-muted mx-auto mb-3" />
+          <h2 className="text-sm font-medium text-text-secondary mb-1">Search flights across airlines</h2>
+          <p className="text-xs text-text-muted max-w-sm mx-auto">
+            Find and compare flights, then book directly on Google Flights or Skyscanner for the best prices.
           </p>
         </div>
       )}

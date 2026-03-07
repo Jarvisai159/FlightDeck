@@ -1,41 +1,39 @@
 import { NavLink } from 'react-router-dom'
-import { Plane, BarChart3, Search, Sun, Moon } from 'lucide-react'
+import { Plane, BarChart3, Search, TrainFront, Sun, Moon } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 
 const tabs = [
-  { to: '/status', label: 'STATUS', icon: Plane },
-  { to: '/history', label: 'HISTORY', icon: BarChart3 },
-  { to: '/search', label: 'SEARCH', icon: Search },
+  { to: '/search', label: 'Flights', icon: Search },
+  { to: '/trains', label: 'Trains', icon: TrainFront },
+  { to: '/history', label: 'History', icon: BarChart3 },
 ]
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <nav className="bg-bg-secondary border-b border-border sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
+    <nav className="bg-bg-secondary/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-12">
           {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-              <Plane className="w-4.5 h-4.5 text-white -rotate-45" />
-            </div>
-            <span className="text-lg font-bold tracking-tight text-text-primary">
-              Flight<span className="text-accent">Deck</span>
+          <div className="flex items-center gap-2">
+            <Plane className="w-4 h-4 text-accent -rotate-45" />
+            <span className="text-sm font-semibold tracking-tight text-text-primary">
+              FlightDeck
             </span>
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-1 bg-bg-primary rounded-lg p-1">
+          <div className="flex items-center gap-0.5">
             {tabs.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-semibold tracking-widest transition-all duration-200 ${
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-accent text-white shadow-md shadow-accent/25'
-                      : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
+                      ? 'text-accent bg-accent/8'
+                      : 'text-text-muted hover:text-text-primary'
                   }`
                 }
               >
@@ -46,16 +44,16 @@ export default function Navbar() {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
-              className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center hover:bg-bg-hover transition-colors"
+              className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-bg-tertiary transition-colors"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-text-secondary" /> : <Moon className="w-4 h-4 text-text-secondary" />}
+              {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-text-muted" /> : <Moon className="w-3.5 h-3.5 text-text-muted" />}
             </button>
-            <span className="text-[10px] font-mono text-text-muted bg-bg-tertiary px-2 py-0.5 rounded">
-              DEMO
+            <span className="text-[9px] font-mono text-text-muted bg-bg-tertiary px-1.5 py-0.5 rounded">
+              BETA
             </span>
           </div>
         </div>
