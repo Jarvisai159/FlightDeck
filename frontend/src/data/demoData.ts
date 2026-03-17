@@ -1,353 +1,222 @@
-// All demo data for the frontend — works without any backend
+// Wandr demo data — works without any backend
 
-export interface FlightStatus {
-  flight_number: string
-  airline_iata: string
-  airline_name: string
-  departure_airport: string
-  departure_airport_name: string
-  arrival_airport: string
-  arrival_airport_name: string
-  scheduled_departure: string
-  scheduled_arrival: string
-  actual_departure: string | null
-  actual_arrival: string | null
-  status: 'on_time' | 'delayed' | 'cancelled' | 'landed' | 'in_air' | 'boarding' | 'scheduled'
-  delay_minutes: number
-  delay_reason: string | null
-  gate: string | null
-  terminal: string | null
-  aircraft_type: string
-  aircraft_registration: string
-  latitude: number | null
-  longitude: number | null
-  altitude: number | null
-  heading: number | null
-  speed: number | null
-  departure_weather: { temperature_c: number; condition: string; wind_speed_kmh: number; humidity: number }
-  arrival_weather: { temperature_c: number; condition: string; wind_speed_kmh: number; humidity: number }
+export interface TourStop {
+  order: number
+  title: string
+  description?: string
+  latitude: number
+  longitude: number
+  audio_duration_seconds?: number
+  walking_duration_seconds?: number
+  image_url?: string
+  image_caption?: string
 }
 
-export interface FlightPerformance {
-  flight_number: string
-  route: string
-  period_days: number
-  total_flights: number
-  on_time_percentage: number
-  average_delay_minutes: number
-  cancellation_rate: number
-  delay_distribution: { under_15: number; '15_to_30': number; '30_to_60': number; over_60: number }
-  daily_performance: { date: string; status: string; delay: number }[]
-  best_days: string[]
-  worst_days: string[]
-}
-
-export interface FlightSegment {
-  airline_iata: string
-  airline_name: string
-  flight_number: string
-  departure_airport: string
-  departure_airport_name: string
-  arrival_airport: string
-  arrival_airport_name: string
-  departure_time: string
-  arrival_time: string
-  duration_minutes: number
-  cabin_class: string
-  on_time_percentage: number | null
-  reliability_color: 'green' | 'amber' | 'red' | null
-}
-
-export interface Itinerary {
-  id: string
-  segments: FlightSegment[]
-  total_price: number
+export interface Tour {
+  id: number
+  title: string
+  description: string
+  city: string
+  country: string
+  theme: string
+  difficulty: string
+  price: number
   currency: string
-  total_duration_minutes: number
-  total_stops: number
-  airlines_involved: string[]
-  layover_durations: number[]
-  best_value_score: number
-  reliability_score: number
-  booking_links: { airline: string; url: string; segment_index: number }[]
-  source: string
-  deep_link: string | null
-  uses_nearby_airports: boolean
-  nearby_airport_note: string | null
-  risk_warnings: string[]
-}
-
-// --- Demo Flight Statuses ---
-export const demoFlights: Record<string, FlightStatus> = {
-  EK203: {
-    flight_number: 'EK203',
-    airline_iata: 'EK',
-    airline_name: 'Emirates',
-    departure_airport: 'DXB',
-    departure_airport_name: 'Dubai International Airport',
-    arrival_airport: 'LIS',
-    arrival_airport_name: 'Lisbon Humberto Delgado Airport',
-    scheduled_departure: '2026-03-05T08:30:00Z',
-    scheduled_arrival: '2026-03-05T14:15:00Z',
-    actual_departure: '2026-03-05T08:45:00Z',
-    actual_arrival: null,
-    status: 'in_air',
-    delay_minutes: 15,
-    delay_reason: 'Late arrival of incoming aircraft',
-    gate: 'B22',
-    terminal: '3',
-    aircraft_type: 'Boeing 777-300ER',
-    aircraft_registration: 'A6-EGO',
-    latitude: 36.8,
-    longitude: 10.5,
-    altitude: 37000,
-    heading: 305,
-    speed: 485,
-    departure_weather: { temperature_c: 28, condition: 'Clear', wind_speed_kmh: 12, humidity: 55 },
-    arrival_weather: { temperature_c: 16, condition: 'Partly Cloudy', wind_speed_kmh: 20, humidity: 72 },
-  },
-  TK762: {
-    flight_number: 'TK762',
-    airline_iata: 'TK',
-    airline_name: 'Turkish Airlines',
-    departure_airport: 'DXB',
-    departure_airport_name: 'Dubai International Airport',
-    arrival_airport: 'IST',
-    arrival_airport_name: 'Istanbul Airport',
-    scheduled_departure: '2026-03-05T11:00:00Z',
-    scheduled_arrival: '2026-03-05T15:30:00Z',
-    actual_departure: null,
-    actual_arrival: null,
-    status: 'on_time',
-    delay_minutes: 0,
-    delay_reason: null,
-    gate: 'A14',
-    terminal: '1',
-    aircraft_type: 'Airbus A330-300',
-    aircraft_registration: 'TC-JNI',
-    latitude: null,
-    longitude: null,
-    altitude: null,
-    heading: null,
-    speed: null,
-    departure_weather: { temperature_c: 28, condition: 'Clear', wind_speed_kmh: 12, humidity: 55 },
-    arrival_weather: { temperature_c: 8, condition: 'Overcast', wind_speed_kmh: 25, humidity: 80 },
-  },
-  FR1234: {
-    flight_number: 'FR1234',
-    airline_iata: 'FR',
-    airline_name: 'Ryanair',
-    departure_airport: 'STN',
-    departure_airport_name: 'London Stansted Airport',
-    arrival_airport: 'LIS',
-    arrival_airport_name: 'Lisbon Humberto Delgado Airport',
-    scheduled_departure: '2026-03-05T06:00:00Z',
-    scheduled_arrival: '2026-03-05T09:00:00Z',
-    actual_departure: '2026-03-05T06:55:00Z',
-    actual_arrival: '2026-03-05T09:45:00Z',
-    status: 'landed',
-    delay_minutes: 45,
-    delay_reason: 'Air traffic control restrictions',
-    gate: '23',
-    terminal: null,
-    aircraft_type: 'Boeing 737-800',
-    aircraft_registration: 'EI-DWL',
-    latitude: 38.7813,
-    longitude: -9.1359,
-    altitude: 0,
-    heading: 0,
-    speed: 0,
-    departure_weather: { temperature_c: 6, condition: 'Rain', wind_speed_kmh: 30, humidity: 88 },
-    arrival_weather: { temperature_c: 16, condition: 'Partly Cloudy', wind_speed_kmh: 20, humidity: 72 },
-  },
-}
-
-// Returns any flight - for unknown ones, generates demo data
-export function getFlightStatus(flightNumber: string): FlightStatus {
-  const upper = flightNumber.toUpperCase().replace(/\s/g, '')
-  if (demoFlights[upper]) return demoFlights[upper]
-
-  // Generate a plausible demo status for any flight number
-  const statuses: FlightStatus['status'][] = ['in_air', 'on_time', 'delayed', 'boarding', 'landed']
-  const hash = upper.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  const status = statuses[hash % statuses.length]
-  const delayMin = status === 'delayed' ? 20 + (hash % 40) : status === 'in_air' ? hash % 15 : 0
-
-  return {
-    flight_number: upper,
-    airline_iata: upper.replace(/[0-9]/g, '').slice(0, 2) || 'XX',
-    airline_name: `Airline ${upper.slice(0, 2)}`,
-    departure_airport: 'DXB',
-    departure_airport_name: 'Dubai International Airport',
-    arrival_airport: 'LHR',
-    arrival_airport_name: 'London Heathrow Airport',
-    scheduled_departure: '2026-03-05T10:00:00Z',
-    scheduled_arrival: '2026-03-05T15:30:00Z',
-    actual_departure: status !== 'on_time' ? '2026-03-05T10:15:00Z' : null,
-    actual_arrival: status === 'landed' ? '2026-03-05T15:45:00Z' : null,
-    status,
-    delay_minutes: delayMin,
-    delay_reason: delayMin > 0 ? 'Weather conditions at origin' : null,
-    gate: `${String.fromCharCode(65 + (hash % 6))}${10 + (hash % 30)}`,
-    terminal: `${1 + (hash % 4)}`,
-    aircraft_type: ['Boeing 777-300ER', 'Airbus A380-800', 'Boeing 787-9', 'Airbus A350-900'][hash % 4],
-    aircraft_registration: `A6-${String.fromCharCode(65 + (hash % 26))}${String.fromCharCode(65 + ((hash + 1) % 26))}${String.fromCharCode(65 + ((hash + 2) % 26))}`,
-    latitude: status === 'in_air' ? 35 + (hash % 15) : null,
-    longitude: status === 'in_air' ? -5 + (hash % 40) : null,
-    altitude: status === 'in_air' ? 30000 + (hash % 10000) : null,
-    heading: status === 'in_air' ? hash % 360 : null,
-    speed: status === 'in_air' ? 400 + (hash % 150) : null,
-    departure_weather: { temperature_c: 25 + (hash % 15), condition: 'Clear', wind_speed_kmh: 10 + (hash % 20), humidity: 40 + (hash % 30) },
-    arrival_weather: { temperature_c: 5 + (hash % 20), condition: 'Cloudy', wind_speed_kmh: 15 + (hash % 25), humidity: 50 + (hash % 35) },
+  duration_minutes: number
+  distance_km: number
+  original_language: string
+  available_languages: string[]
+  cover_image_url: string
+  avg_rating: number
+  review_count: number
+  total_purchases: number
+  stops: TourStop[]
+  guide: {
+    name: string
+    avatar_url: string
+    bio: string
+    tagline: string
+    is_verified_local: boolean
   }
 }
 
-// --- Demo Performance Data ---
-export function getFlightPerformance(flightNumber: string, days: number = 30): FlightPerformance {
-  const daily = []
-  const today = new Date()
-  for (let i = 0; i < days; i++) {
-    const d = new Date(today)
-    d.setDate(d.getDate() - i)
-    const hash = (flightNumber.charCodeAt(0) + i * 7) % 10
-    let status: string, delay: number
-    if (hash < 5) { status = 'on_time'; delay = 0 }
-    else if (hash < 7) { status = 'minor_delay'; delay = 10 + (hash * 3) }
-    else if (hash < 9) { status = 'major_delay'; delay = 35 + (hash * 5) }
-    else { status = 'cancelled'; delay = 0 }
-    daily.push({ date: d.toISOString().split('T')[0], status, delay })
-  }
-
-  const onTime = daily.filter(d => d.status === 'on_time').length
-  const cancelled = daily.filter(d => d.status === 'cancelled').length
-  const totalDelay = daily.reduce((sum, d) => sum + d.delay, 0)
-
-  return {
-    flight_number: flightNumber.toUpperCase(),
-    route: 'DXB → LIS',
-    period_days: days,
-    total_flights: days,
-    on_time_percentage: Math.round((onTime / days) * 1000) / 10,
-    average_delay_minutes: Math.round((totalDelay / days) * 10) / 10,
-    cancellation_rate: Math.round((cancelled / days) * 1000) / 10,
-    delay_distribution: { under_15: 48, '15_to_30': 22, '30_to_60': 18, over_60: 12 },
-    daily_performance: daily.reverse(),
-    best_days: ['Tuesday', 'Wednesday', 'Thursday'],
-    worst_days: ['Friday', 'Sunday'],
-  }
+export const themeLabels: Record<string, string> = {
+  history: 'History',
+  food: 'Food & Drink',
+  architecture: 'Architecture',
+  hidden_gems: 'Hidden Gems',
+  nightlife: 'Nightlife',
+  street_art: 'Street Art',
+  culture: 'Culture',
+  nature: 'Nature',
+  photography: 'Photography',
 }
 
-// --- Demo Search Results ---
-export const demoItineraries: Itinerary[] = [
+export const demoTours: Tour[] = [
   {
-    id: 'itin-1',
-    segments: [{
-      airline_iata: 'EK', airline_name: 'Emirates', flight_number: 'EK191',
-      departure_airport: 'DXB', departure_airport_name: 'Dubai Intl',
-      arrival_airport: 'LIS', arrival_airport_name: 'Lisbon',
-      departure_time: '2026-03-10T08:00:00Z', arrival_time: '2026-03-10T14:30:00Z',
-      duration_minutes: 510, cabin_class: 'Economy',
-      on_time_percentage: 85.2, reliability_color: 'green',
-    }],
-    total_price: 385, currency: 'EUR', total_duration_minutes: 510, total_stops: 0,
-    airlines_involved: ['Emirates'], layover_durations: [],
-    best_value_score: 0.78, reliability_score: 0.85,
-    booking_links: [{ airline: 'EK', url: '#', segment_index: 0 }],
-    source: 'demo', deep_link: '#',
-    uses_nearby_airports: false, nearby_airport_note: null, risk_warnings: [],
+    id: 1,
+    title: 'Alfama: Fado & Forgotten Stories',
+    description: "Wind through Lisbon's oldest neighborhood, where every alley has a story. From Moorish walls to fado houses, discover 900 years of history in 90 minutes.",
+    city: 'Lisbon', country: 'Portugal',
+    theme: 'history', difficulty: 'moderate',
+    price: 7.99, currency: 'EUR',
+    duration_minutes: 90, distance_km: 2.8,
+    original_language: 'en', available_languages: ['en', 'pt', 'es'],
+    cover_image_url: 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=800',
+    avg_rating: 4.7, review_count: 24, total_purchases: 89,
+    guide: {
+      name: 'Ana Rodrigues',
+      avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ana',
+      bio: "Lisbon-born historian and storyteller. I've been giving walking tours for 8 years and fell in love with sharing my city's hidden layers.",
+      tagline: 'History whispered through cobblestones',
+      is_verified_local: true,
+    },
+    stops: [
+      { order: 1, title: 'Miradouro de Santa Luzia', description: 'Start at this iconic viewpoint overlooking the red rooftops of Alfama and the Tagus river.', latitude: 38.7118, longitude: -9.1304, audio_duration_seconds: 180 },
+      { order: 2, title: 'Largo das Portas do Sol', description: 'Just steps away, this square was once a gate in the Moorish city walls.', latitude: 38.7124, longitude: -9.1298, audio_duration_seconds: 210, walking_duration_seconds: 60 },
+      { order: 3, title: 'Rua de São Miguel', description: 'Dive into the heart of Alfama through this narrow, laundry-draped street.', latitude: 38.7109, longitude: -9.1300, audio_duration_seconds: 240, walking_duration_seconds: 120 },
+      { order: 4, title: 'Feira da Ladra Corner', description: 'The thieves\' market has operated here since the 12th century.', latitude: 38.7150, longitude: -9.1264, audio_duration_seconds: 195, walking_duration_seconds: 180 },
+      { order: 5, title: 'Panteão Nacional', description: 'The stunning National Pantheon, once a church plagued by collapses and legends of a curse.', latitude: 38.7153, longitude: -9.1247, audio_duration_seconds: 270, walking_duration_seconds: 90 },
+      { order: 6, title: 'Fado Museum Courtyard', description: 'Stand where fado was born — the soulful music of longing and the sea.', latitude: 38.7104, longitude: -9.1313, audio_duration_seconds: 300, walking_duration_seconds: 240 },
+      { order: 7, title: 'Sé de Lisboa', description: "End at Lisbon's medieval cathedral, standing since 1147.", latitude: 38.7098, longitude: -9.1325, audio_duration_seconds: 250, walking_duration_seconds: 180 },
+    ],
   },
   {
-    id: 'itin-2',
-    segments: [
-      {
-        airline_iata: 'TK', airline_name: 'Turkish Airlines', flight_number: 'TK762',
-        departure_airport: 'DXB', departure_airport_name: 'Dubai Intl',
-        arrival_airport: 'IST', arrival_airport_name: 'Istanbul',
-        departure_time: '2026-03-10T06:00:00Z', arrival_time: '2026-03-10T10:30:00Z',
-        duration_minutes: 270, cabin_class: 'Economy',
-        on_time_percentage: 78.0, reliability_color: 'green',
-      },
-      {
-        airline_iata: 'TK', airline_name: 'Turkish Airlines', flight_number: 'TK1755',
-        departure_airport: 'IST', arrival_airport_name: 'Lisbon',
-        departure_airport_name: 'Istanbul', arrival_airport: 'LIS',
-        departure_time: '2026-03-10T13:00:00Z', arrival_time: '2026-03-10T16:15:00Z',
-        duration_minutes: 255, cabin_class: 'Economy',
-        on_time_percentage: 74.5, reliability_color: 'amber',
-      },
+    id: 2,
+    title: 'Belém: Age of Discovery Walk',
+    description: 'Trace the footsteps of Vasco da Gama and Magellan along the riverfront where Portugal launched its maritime empire.',
+    city: 'Lisbon', country: 'Portugal',
+    theme: 'history', difficulty: 'easy',
+    price: 6.99, currency: 'EUR',
+    duration_minutes: 75, distance_km: 2.2,
+    original_language: 'en', available_languages: ['en', 'pt'],
+    cover_image_url: 'https://images.unsplash.com/photo-1580323956656-26bbb0a85e75?w=800',
+    avg_rating: 4.5, review_count: 18, total_purchases: 62,
+    guide: {
+      name: 'Ana Rodrigues',
+      avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ana',
+      bio: "Lisbon-born historian and storyteller.",
+      tagline: 'History whispered through cobblestones',
+      is_verified_local: true,
+    },
+    stops: [
+      { order: 1, title: 'Padrão dos Descobrimentos', description: 'The Monument to the Discoveries stands where ships once departed for unknown worlds.', latitude: 38.6936, longitude: -9.2057, audio_duration_seconds: 240 },
+      { order: 2, title: 'Rosa dos Ventos', description: 'The giant compass rose in the pavement maps Portuguese discoveries.', latitude: 38.6933, longitude: -9.2060, audio_duration_seconds: 180, walking_duration_seconds: 30 },
+      { order: 3, title: 'Torre de Belém', description: "This UNESCO jewel guarded the entrance to Lisbon's harbour.", latitude: 38.6916, longitude: -9.2160, audio_duration_seconds: 300, walking_duration_seconds: 360 },
+      { order: 4, title: 'Mosteiro dos Jerónimos', description: 'The crown jewel of Manueline architecture, built with spice trade wealth.', latitude: 38.6979, longitude: -9.2068, audio_duration_seconds: 350, walking_duration_seconds: 420 },
+      { order: 5, title: 'Pastéis de Belém', description: 'No visit is complete without the famous custard tarts, made here since 1837.', latitude: 38.6975, longitude: -9.2032, audio_duration_seconds: 180, walking_duration_seconds: 120 },
+      { order: 6, title: 'Jardim de Belém', description: 'End your walk in the gardens, reflecting on five centuries of exploration.', latitude: 38.6971, longitude: -9.2050, audio_duration_seconds: 150, walking_duration_seconds: 60 },
     ],
-    total_price: 245, currency: 'EUR', total_duration_minutes: 615, total_stops: 1,
-    airlines_involved: ['Turkish Airlines'], layover_durations: [150],
-    best_value_score: 0.75, reliability_score: 0.76,
-    booking_links: [
-      { airline: 'TK', url: '#', segment_index: 0 },
-      { airline: 'TK', url: '#', segment_index: 1 },
-    ],
-    source: 'demo', deep_link: '#',
-    uses_nearby_airports: false, nearby_airport_note: null, risk_warnings: [],
   },
   {
-    id: 'itin-3',
-    segments: [
-      {
-        airline_iata: 'W6', airline_name: 'Wizz Air', flight_number: 'W6101',
-        departure_airport: 'SHJ', departure_airport_name: 'Sharjah',
-        arrival_airport: 'BGY', arrival_airport_name: 'Milan Bergamo',
-        departure_time: '2026-03-10T03:00:00Z', arrival_time: '2026-03-10T08:00:00Z',
-        duration_minutes: 360, cabin_class: 'Economy',
-        on_time_percentage: 68.3, reliability_color: 'amber',
-      },
-      {
-        airline_iata: 'FR', airline_name: 'Ryanair', flight_number: 'FR4782',
-        departure_airport: 'BGY', departure_airport_name: 'Milan Bergamo',
-        arrival_airport: 'LIS', arrival_airport_name: 'Lisbon',
-        departure_time: '2026-03-10T12:00:00Z', arrival_time: '2026-03-10T14:00:00Z',
-        duration_minutes: 180, cabin_class: 'Economy',
-        on_time_percentage: 71.0, reliability_color: 'amber',
-      },
+    id: 3,
+    title: "Taste of Mouraria: Lisbon's Secret Kitchen",
+    description: "From century-old tascas to Mozambican spice shops, explore the multicultural flavors of Lisbon's most underrated neighborhood.",
+    city: 'Lisbon', country: 'Portugal',
+    theme: 'food', difficulty: 'easy',
+    price: 8.99, currency: 'EUR',
+    duration_minutes: 105, distance_km: 2.0,
+    original_language: 'en', available_languages: ['en', 'pt', 'fr'],
+    cover_image_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
+    avg_rating: 4.9, review_count: 31, total_purchases: 112,
+    guide: {
+      name: 'Marco Silva',
+      avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marco',
+      bio: 'Chef turned food guide. After 12 years in Lisbon kitchens, I now take people on culinary adventures.',
+      tagline: 'Taste Lisbon like a local',
+      is_verified_local: true,
+    },
+    stops: [
+      { order: 1, title: 'Martinho da Arcada (context)', description: "We start near Lisbon's oldest café to set the culinary scene.", latitude: 38.7075, longitude: -9.1364, audio_duration_seconds: 210 },
+      { order: 2, title: 'Mercearia do Largo', description: 'A neighborhood grocer where African, Indian, and Portuguese ingredients collide.', latitude: 38.7143, longitude: -9.1348, audio_duration_seconds: 240, walking_duration_seconds: 300 },
+      { order: 3, title: 'Tasca do Chico', description: 'A fado tasca where petiscos are served with raw emotion.', latitude: 38.7137, longitude: -9.1341, audio_duration_seconds: 270, walking_duration_seconds: 60 },
+      { order: 4, title: 'Cantinho do Aziz', description: "Mozambican-Portuguese fusion in a space the size of a closet — and it's magical.", latitude: 38.7148, longitude: -9.1332, audio_duration_seconds: 240, walking_duration_seconds: 90 },
+      { order: 5, title: 'Padaria Portuguesa', description: 'Learn why Portuguese bread culture is an underrated treasure.', latitude: 38.7155, longitude: -9.1326, audio_duration_seconds: 180, walking_duration_seconds: 60 },
+      { order: 6, title: 'O Velho Eurico', description: "A traditional tasca that hasn't changed its recipe in 40 years.", latitude: 38.7131, longitude: -9.1310, audio_duration_seconds: 240, walking_duration_seconds: 120 },
+      { order: 7, title: 'Ginjinha Stall', description: 'Sip the cherry liqueur that Lisboetas have loved since 1840.', latitude: 38.7143, longitude: -9.1387, audio_duration_seconds: 195, walking_duration_seconds: 180 },
+      { order: 8, title: 'Mercado da Figueira', description: 'End at this local market where chefs and grandmothers shop side by side.', latitude: 38.7132, longitude: -9.1378, audio_duration_seconds: 220, walking_duration_seconds: 90 },
     ],
-    total_price: 127, currency: 'EUR', total_duration_minutes: 780, total_stops: 1,
-    airlines_involved: ['Wizz Air', 'Ryanair'], layover_durations: [240],
-    best_value_score: 0.88, reliability_score: 0.69,
-    booking_links: [
-      { airline: 'W6', url: '#', segment_index: 0 },
-      { airline: 'FR', url: '#', segment_index: 1 },
-    ],
-    source: 'demo', deep_link: null,
-    uses_nearby_airports: true,
-    nearby_airport_note: 'Departs from Sharjah (SHJ) instead of Dubai (DXB) — 30 min drive',
-    risk_warnings: ['Separate bookings: if Wizz Air is delayed, Ryanair won\'t wait', 'Self-transfer at Milan Bergamo — collect and re-check luggage'],
   },
   {
-    id: 'itin-4',
-    segments: [
-      {
-        airline_iata: 'G9', airline_name: 'Air Arabia', flight_number: 'G9345',
-        departure_airport: 'SHJ', departure_airport_name: 'Sharjah',
-        arrival_airport: 'BCN', arrival_airport_name: 'Barcelona',
-        departure_time: '2026-03-10T07:00:00Z', arrival_time: '2026-03-10T12:30:00Z',
-        duration_minutes: 390, cabin_class: 'Economy',
-        on_time_percentage: 72.0, reliability_color: 'amber',
-      },
-      {
-        airline_iata: 'TP', airline_name: 'TAP Portugal', flight_number: 'TP1040',
-        departure_airport: 'BCN', departure_airport_name: 'Barcelona',
-        arrival_airport: 'LIS', arrival_airport_name: 'Lisbon',
-        departure_time: '2026-03-10T15:30:00Z', arrival_time: '2026-03-10T16:45:00Z',
-        duration_minutes: 135, cabin_class: 'Economy',
-        on_time_percentage: 80.5, reliability_color: 'green',
-      },
+    id: 4,
+    title: 'Pastéis & Port: Sweet Side of Lisbon',
+    description: "A sugar-fueled stroll through Lisbon's best bakeries, chocolate shops, and wine bars.",
+    city: 'Lisbon', country: 'Portugal',
+    theme: 'food', difficulty: 'easy',
+    price: 6.99, currency: 'EUR',
+    duration_minutes: 70, distance_km: 1.8,
+    original_language: 'en', available_languages: ['en', 'pt'],
+    cover_image_url: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=800',
+    avg_rating: 4.6, review_count: 15, total_purchases: 48,
+    guide: {
+      name: 'Marco Silva',
+      avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marco',
+      bio: 'Chef turned food guide.',
+      tagline: 'Taste Lisbon like a local',
+      is_verified_local: true,
+    },
+    stops: [
+      { order: 1, title: 'Manteigaria', description: 'Watch custard tarts being made through the glass window.', latitude: 38.7105, longitude: -9.1422, audio_duration_seconds: 200 },
+      { order: 2, title: 'Confeitaria Nacional', description: "Operating since 1829, this is Portugal's oldest confectionery.", latitude: 38.7132, longitude: -9.1387, audio_duration_seconds: 240, walking_duration_seconds: 180 },
+      { order: 3, title: 'Landeau Chocolate', description: 'The chocolate cake that has Lisbon obsessed.', latitude: 38.7075, longitude: -9.1462, audio_duration_seconds: 180, walking_duration_seconds: 240 },
+      { order: 4, title: 'By the Wine', description: 'A cozy José Maria da Fonseca wine bar in Chiado.', latitude: 38.7108, longitude: -9.1420, audio_duration_seconds: 220, walking_duration_seconds: 180 },
+      { order: 5, title: 'Fábrica dos Pastéis de Nata', description: 'Compare your pastéis — which bakery wins?', latitude: 38.7145, longitude: -9.1398, audio_duration_seconds: 180, walking_duration_seconds: 150 },
+      { order: 6, title: 'A Ginjinha', description: 'End with a shot of ginjinha at this legendary standing-room-only bar.', latitude: 38.7152, longitude: -9.1390, audio_duration_seconds: 160, walking_duration_seconds: 60 },
     ],
-    total_price: 198, currency: 'EUR', total_duration_minutes: 705, total_stops: 1,
-    airlines_involved: ['Air Arabia', 'TAP Portugal'], layover_durations: [180],
-    best_value_score: 0.72, reliability_score: 0.76,
-    booking_links: [
-      { airline: 'G9', url: '#', segment_index: 0 },
-      { airline: 'TP', url: '#', segment_index: 1 },
+  },
+  {
+    id: 5,
+    title: 'LX Factory to Alcântara: Street Art Trail',
+    description: "Discover massive murals, political stencils, and guerrilla installations in Lisbon's creative west side.",
+    city: 'Lisbon', country: 'Portugal',
+    theme: 'street_art', difficulty: 'easy',
+    price: 5.99, currency: 'EUR',
+    duration_minutes: 80, distance_km: 2.5,
+    original_language: 'en', available_languages: ['en', 'pt', 'de'],
+    cover_image_url: 'https://images.unsplash.com/photo-1561059488-916d69792237?w=800',
+    avg_rating: 4.8, review_count: 20, total_purchases: 73,
+    guide: {
+      name: 'Sofia Mendes',
+      avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia',
+      bio: 'Street art curator and urban culture enthusiast. I track every new mural, stencil, and paste-up across the city.',
+      tagline: 'The city is the canvas',
+      is_verified_local: true,
+    },
+    stops: [
+      { order: 1, title: 'LX Factory Entrance Mural', description: 'The gateway piece by Bordalo II, made from recycled trash — a fox that watches over the complex.', latitude: 38.7036, longitude: -9.1780, audio_duration_seconds: 220 },
+      { order: 2, title: 'Ler Devagar Bookshop Wall', description: 'The iconic printing-press-turned-bookshop with its flying bicycle sculpture.', latitude: 38.7032, longitude: -9.1775, audio_duration_seconds: 200, walking_duration_seconds: 60 },
+      { order: 3, title: 'Vhils Carved Portrait', description: 'Alexandre Farto (Vhils) carved this face directly into the wall with drills and chisels.', latitude: 38.7040, longitude: -9.1768, audio_duration_seconds: 270, walking_duration_seconds: 90 },
+      { order: 4, title: 'Underdogs Gallery Wall', description: 'Curated outdoor gallery showcasing rotating international artists.', latitude: 38.7025, longitude: -9.1745, audio_duration_seconds: 240, walking_duration_seconds: 150 },
+      { order: 5, title: 'Alcântara Railway Overpass', description: 'A 200-meter gallery of paste-ups and political stencils under the railway.', latitude: 38.7015, longitude: -9.1720, audio_duration_seconds: 260, walking_duration_seconds: 180 },
+      { order: 6, title: 'Utopia Mural', description: "A 4-story collaborative piece imagining Lisbon's future.", latitude: 38.7008, longitude: -9.1695, audio_duration_seconds: 200, walking_duration_seconds: 150 },
+      { order: 7, title: 'Village Underground Lisboa', description: 'End at the creative hub housed in repurposed shipping containers and double-decker buses.', latitude: 38.7020, longitude: -9.1670, audio_duration_seconds: 180, walking_duration_seconds: 120 },
     ],
-    source: 'demo', deep_link: null,
-    uses_nearby_airports: true,
-    nearby_airport_note: 'Departs from Sharjah (SHJ) — check Air Arabia for best fares',
-    risk_warnings: ['Separate bookings — self-transfer in Barcelona'],
+  },
+  {
+    id: 6,
+    title: 'Bairro Alto After Dark: Nightlife & Neon',
+    description: "Experience Lisbon's legendary nightlife district — from centuries-old wine bars to underground clubs.",
+    city: 'Lisbon', country: 'Portugal',
+    theme: 'nightlife', difficulty: 'easy',
+    price: 5.99, currency: 'EUR',
+    duration_minutes: 60, distance_km: 1.5,
+    original_language: 'en', available_languages: ['en', 'pt'],
+    cover_image_url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800',
+    avg_rating: 4.4, review_count: 12, total_purchases: 41,
+    guide: {
+      name: 'Sofia Mendes',
+      avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia',
+      bio: 'Street art curator and urban culture enthusiast.',
+      tagline: 'The city is the canvas',
+      is_verified_local: true,
+    },
+    stops: [
+      { order: 1, title: 'Miradouro de São Pedro de Alcântara', description: 'Start at sunset with the city glowing below you.', latitude: 38.7160, longitude: -9.1455, audio_duration_seconds: 180 },
+      { order: 2, title: 'Solar do Vinho do Porto', description: 'A 250-year tradition of port wine tasting in a palace.', latitude: 38.7155, longitude: -9.1462, audio_duration_seconds: 220, walking_duration_seconds: 60 },
+      { order: 3, title: 'Rua da Rosa', description: 'The beating heart of Bairro Alto nightlife — 50 bars in 200 meters.', latitude: 38.7135, longitude: -9.1445, audio_duration_seconds: 200, walking_duration_seconds: 120 },
+      { order: 4, title: 'Tasca do Chico', description: 'Spontaneous fado happens here — locals sing from their tables.', latitude: 38.7130, longitude: -9.1440, audio_duration_seconds: 260, walking_duration_seconds: 60 },
+      { order: 5, title: 'Pensão Amor', description: 'A former brothel turned bohemian bar with a library of erotica.', latitude: 38.7075, longitude: -9.1448, audio_duration_seconds: 240, walking_duration_seconds: 240 },
+      { order: 6, title: 'Pink Street (Rua Nova do Carvalho)', description: "End on Lisbon's famous pink-painted street, the new center of nightlife.", latitude: 38.7070, longitude: -9.1445, audio_duration_seconds: 200, walking_duration_seconds: 60 },
+    ],
   },
 ]

@@ -1,20 +1,19 @@
-from app.models.user import User
-from app.models.airport import Airport
-from app.models.airline import Airline
-from app.models.flight import Flight, FlightHistory
-from app.models.search import SearchCache
-from app.models.analytics import AnalyticsEvent, AdTracking
-from app.models.preference import UserPreference, PriceAlert
+"""Wandr database models."""
+from app.models.user import User, UserRole
+from app.models.tour import Tour, TourStatus, TourDifficulty, TourTheme
+from app.models.tour_stop import TourStop
+from app.models.review import Review
+from app.models.purchase import Purchase, PurchaseStatus
 
 __all__ = [
     "User",
-    "Airport",
-    "Airline",
-    "Flight",
-    "FlightHistory",
-    "SearchCache",
-    "AnalyticsEvent",
-    "AdTracking",
-    "UserPreference",
-    "PriceAlert",
+    "UserRole",
+    "Tour",
+    "TourStatus",
+    "TourDifficulty",
+    "TourTheme",
+    "TourStop",
+    "Review",
+    "Purchase",
+    "PurchaseStatus",
 ]

@@ -7,8 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate
+from app.models.user import User, UserRole
+from app.schemas.user import (
+    UserCreate, UserLogin, UserResponse, ProfileUpdate, TokenResponse,
+)
 from app.core.security import hash_password, verify_password, create_access_token
 from app.core.dependencies import get_current_user, require_auth
 
@@ -17,33 +19,30 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: UserCreate, response: Response, db: AsyncSession = Depends(get_db)):
-    # Check if email already exists
     existing = await db.execute(select(User).where(User.email == data.email))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered")
 
     user = User(
         email=data.email,
-        name=data.name,
-        password_hash=hash_password(data.password),
-        auth_provider="email",
-        email_verified=False,
-        login_count=1,
-        last_login=datetime.now(timezone.utc),
+        full_name=data.full_name,
+        hashed_password=hash_password(data.password),
+        role=UserRole(data.role),
+        preferred_language=data.preferred_language,
+        preferred_currency=data.preferred_currency,
     )
     db.add(user)
     await db.flush()
 
     token = create_access_token(user.id, user.email)
 
-    # Set httpOnly cookie
     response.set_cookie(
         key="access_token",
         value=token,
         httponly=True,
         samesite="lax",
-        secure=False,  # Set True in production with HTTPS
-        max_age=60 * 60 * 24 * 7,  # 7 days
+        secure=False,
+        max_age=60 * 60 * 24 * 7,
     )
 
     return TokenResponse(
@@ -57,11 +56,8 @@ async def login(data: UserLogin, response: Response, db: AsyncSession = Depends(
     result = await db.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()
 
-    if not user or not user.password_hash or not verify_password(data.password, user.password_hash):
+    if not user or not user.hashed_password or not verify_password(data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-
-    user.last_login = datetime.now(timezone.utc)
-    user.login_count += 1
 
     token = create_access_token(user.id, user.email)
 
@@ -91,26 +87,20 @@ async def get_profile(user: User = Depends(require_auth)):
     return UserResponse.model_validate(user)
 
 
-@router.patch("/me", response_model=UserResponse)
+@router.put("/profile", response_model=UserResponse)
 async def update_profile(
-    data: UserUpdate,
+    data: ProfileUpdate,
     user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    if data.name is not None:
-        user.name = data.name
-    if data.preferred_currency is not None:
-        user.preferred_currency = data.preferred_currency
-    if data.preferred_airports is not None:
-        user.preferred_airports = data.preferred_airports
-    if data.notification_preferences is not None:
-        user.notification_preferences = data.notification_preferences
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(user, field, value)
     return UserResponse.model_validate(user)
 
 
 @router.get("/google/login")
 async def google_login():
-    """Return Google OAuth URL for the frontend to redirect to."""
     from app.config import settings
 
     if not settings.google_client_id:
@@ -133,11 +123,9 @@ async def google_callback(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """Exchange Google auth code for user session."""
     import httpx
     from app.config import settings
 
-    # Exchange code for tokens
     async with httpx.AsyncClient() as client:
         token_resp = await client.post(
             "https://oauth2.googleapis.com/token",
@@ -154,7 +142,6 @@ async def google_callback(
 
         tokens = token_resp.json()
 
-        # Get user info
         userinfo_resp = await client.get(
             "https://www.googleapis.com/oauth2/v2/userinfo",
             headers={"Authorization": f"Bearer {tokens['access_token']}"},
@@ -164,24 +151,20 @@ async def google_callback(
 
         google_user = userinfo_resp.json()
 
-    # Find or create user
     result = await db.execute(select(User).where(User.email == google_user["email"]))
     user = result.scalar_one_or_none()
 
     if user:
-        user.last_login = datetime.now(timezone.utc)
-        user.login_count += 1
         if google_user.get("picture"):
             user.avatar_url = google_user["picture"]
+        if not user.google_id:
+            user.google_id = google_user.get("id")
     else:
         user = User(
             email=google_user["email"],
-            name=google_user.get("name", google_user["email"]),
+            full_name=google_user.get("name", google_user["email"]),
             avatar_url=google_user.get("picture"),
-            auth_provider="google",
-            email_verified=True,
-            login_count=1,
-            last_login=datetime.now(timezone.utc),
+            google_id=google_user.get("id"),
         )
         db.add(user)
         await db.flush()

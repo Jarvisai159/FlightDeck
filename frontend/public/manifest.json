@@ -1,0 +1,16 @@
+{
+  "name": "Wandr",
+  "short_name": "Wandr",
+  "description": "Discover cities through immersive audio walking tours crafted by passionate local guides.",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#E07A5F",
+  "background_color": "#FFFBF5",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,29 +1,25 @@
 import { NavLink } from 'react-router-dom'
-import { Plane, BarChart3, Search, Sun, Moon } from 'lucide-react'
-import { useTheme } from '../../context/ThemeContext'
+import { Headphones, Compass, BookOpen } from 'lucide-react'
 
 const tabs = [
-  { to: '/status', label: 'STATUS', icon: Plane },
-  { to: '/history', label: 'HISTORY', icon: BarChart3 },
-  { to: '/search', label: 'SEARCH', icon: Search },
+  { to: '/explore', label: 'EXPLORE', icon: Compass },
+  { to: '/my-tours', label: 'MY TOURS', icon: BookOpen },
 ]
 
 export default function Navbar() {
-  const { theme, toggleTheme } = useTheme()
-
   return (
     <nav className="bg-bg-secondary border-b border-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <div className="flex items-center gap-2.5">
+          <NavLink to="/" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-              <Plane className="w-4.5 h-4.5 text-white -rotate-45" />
+              <Headphones className="w-4.5 h-4.5 text-white" />
             </div>
-            <span className="text-lg font-bold tracking-tight text-text-primary">
-              Flight<span className="text-accent">Deck</span>
+            <span className="text-lg font-bold tracking-tight text-text-primary font-serif">
+              Wandr
             </span>
-          </div>
+          </NavLink>
 
           {/* Tabs */}
           <div className="flex items-center gap-1 bg-bg-primary rounded-lg p-1">
@@ -47,15 +43,8 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={toggleTheme}
-              className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center hover:bg-bg-hover transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-text-secondary" /> : <Moon className="w-4 h-4 text-text-secondary" />}
-            </button>
-            <span className="text-[10px] font-mono text-text-muted bg-bg-tertiary px-2 py-0.5 rounded">
-              DEMO
+            <span className="text-[10px] font-mono text-text-muted bg-bg-secondary px-2 py-0.5 rounded border border-border-light">
+              BETA
             </span>
           </div>
         </div>

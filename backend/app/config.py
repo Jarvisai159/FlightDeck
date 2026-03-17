@@ -7,7 +7,7 @@ import json
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = "sqlite+aiosqlite:///./flightdeck.db"
+    database_url: str = "sqlite+aiosqlite:///./wandr.db"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
@@ -28,36 +28,33 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from_email: str = ""
-    smtp_from_name: str = "FlightDeck"
+    smtp_from_name: str = "Wandr"
 
-    # API Keys
-    aviationstack_api_key: str = ""
-    opensky_username: str = ""
-    opensky_password: str = ""
-    kiwi_tequila_api_key: str = ""
+    # Stripe
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+
+    # Audio Storage
+    audio_storage_path: str = "./audio_storage"
+    max_recording_minutes: int = 120
+    supported_languages: str = '["en","es","fr","de","ja"]'
+    cdn_base_url: str = ""
 
     # Application
-    app_name: str = "FlightDeck"
+    app_name: str = "Wandr"
     app_env: str = "development"
     app_debug: bool = True
     frontend_url: str = "http://localhost:5173"
     backend_url: str = "http://localhost:8000"
     cors_origins: str = '["http://localhost:5173"]'
 
-    # Scraper settings
-    scraper_default_timeout: int = 30
-    scraper_cache_ttl_live: int = 60
-    scraper_cache_ttl_historical: int = 86400
-    scraper_max_retries: int = 3
-
-    # AdSense
-    adsense_client_id: str = ""
-    adsense_slot_sidebar: str = ""
-    adsense_slot_banner: str = ""
-
     @property
     def cors_origins_list(self) -> list[str]:
         return json.loads(self.cors_origins)
+
+    @property
+    def supported_languages_list(self) -> list[str]:
+        return json.loads(self.supported_languages)
 
     @property
     def is_development(self) -> bool:

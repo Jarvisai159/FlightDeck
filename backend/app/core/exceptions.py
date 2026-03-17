@@ -1,52 +1,39 @@
 """Custom exception classes for the application."""
 
 
-class FlightDeckError(Exception):
-    """Base exception for all FlightDeck errors."""
+class WandrError(Exception):
+    """Base exception for all Wandr errors."""
 
     def __init__(self, message: str = "An error occurred"):
         self.message = message
         super().__init__(self.message)
 
 
-class ScraperError(FlightDeckError):
-    """Raised when a scraper fails to fetch data."""
+class TourNotFoundError(WandrError):
+    """Raised when a tour cannot be found."""
 
-    def __init__(self, source: str, message: str = "Scraper failed"):
-        self.source = source
-        super().__init__(f"[{source}] {message}")
-
-
-class ScraperBlockedError(ScraperError):
-    """Raised when a scraper is blocked by the target site."""
-
-    pass
+    def __init__(self, tour_id: int):
+        super().__init__(f"Tour {tour_id} not found")
 
 
-class ScraperTimeoutError(ScraperError):
-    """Raised when a scraper request times out."""
+class AudioProcessingError(WandrError):
+    """Raised when audio processing fails."""
 
-    pass
+    def __init__(self, message: str = "Audio processing failed"):
+        super().__init__(message)
 
 
-class RateLimitExceededError(FlightDeckError):
+class PaymentError(WandrError):
+    """Raised when a payment operation fails."""
+
+    def __init__(self, message: str = "Payment failed"):
+        super().__init__(message)
+
+
+class RateLimitExceededError(WandrError):
     """Raised when API rate limits are hit."""
 
     def __init__(self, source: str, retry_after: int = 60):
         self.source = source
         self.retry_after = retry_after
         super().__init__(f"Rate limit exceeded for {source}. Retry after {retry_after}s")
-
-
-class FlightNotFoundError(FlightDeckError):
-    """Raised when a flight cannot be found in any source."""
-
-    def __init__(self, flight_number: str):
-        super().__init__(f"Flight {flight_number} not found")
-
-
-class RouteNotFoundError(FlightDeckError):
-    """Raised when no routes are found for a given origin/destination."""
-
-    def __init__(self, origin: str, destination: str):
-        super().__init__(f"No routes found from {origin} to {destination}")
