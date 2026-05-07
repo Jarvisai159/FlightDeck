@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom'
-import { Plane, BarChart3, Search, Sun, Moon } from 'lucide-react'
+import { Plane, BarChart3, Search, Sun, Moon, Wrench } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 
 const tabs = [
+  { to: '/assembly', label: 'BUILD', icon: Wrench },
   { to: '/status', label: 'STATUS', icon: Plane },
   { to: '/history', label: 'HISTORY', icon: BarChart3 },
   { to: '/search', label: 'SEARCH', icon: Search },
