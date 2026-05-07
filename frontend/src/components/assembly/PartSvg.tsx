@@ -181,9 +181,14 @@ function TabPlate({ spec }: { spec: PartSpec }) {
 }
 
 function HTrim({ spec }: { spec: PartSpec }) {
+  // "Dog-bone" silver trim: round end-tabs joined by a thinner waist bar.
+  // Mirrors the H310 / H607 look from the kit photos.
   const [hi, , dark] = colorTriple(spec.color)
   const w = spec.width
   const h = spec.height
+  const tabR = h / 2 - 0.5
+  const waistY1 = h * 0.32
+  const waistY2 = h * 0.68
   const id = `htrim-${spec.sku}`
   return (
     <g>
@@ -193,15 +198,12 @@ function HTrim({ spec }: { spec: PartSpec }) {
           <stop offset="100%" stopColor={dark} />
         </linearGradient>
       </defs>
-      <path
-        d={`M0 ${h * 0.3} L${w * 0.2} ${h * 0.3} L${w * 0.2} 0 L${w * 0.8} 0 L${w * 0.8} ${h * 0.3} L${w} ${h * 0.3} L${w} ${h * 0.7} L${w * 0.8} ${h * 0.7} L${w * 0.8} ${h} L${w * 0.2} ${h} L${w * 0.2} ${h * 0.7} L0 ${h * 0.7} Z`}
-        fill={`url(#${id})`}
-        stroke={dark}
-        strokeWidth={0.6}
-      />
-      <Hole x={w * 0.5} y={h * 0.5} r={2.8} />
-      <Hole x={w * 0.1} y={h * 0.5} r={2} />
-      <Hole x={w * 0.9} y={h * 0.5} r={2} />
+      <circle cx={tabR} cy={h / 2} r={tabR} fill={`url(#${id})`} stroke={dark} strokeWidth={0.6} />
+      <circle cx={w - tabR} cy={h / 2} r={tabR} fill={`url(#${id})`} stroke={dark} strokeWidth={0.6} />
+      <rect x={tabR} y={waistY1} width={w - tabR * 2} height={waistY2 - waistY1} fill={`url(#${id})`} stroke={dark} strokeWidth={0.5} />
+      <Hole x={tabR} y={h / 2} r={2.6} />
+      <Hole x={w - tabR} y={h / 2} r={2.6} />
+      {w > 50 && <Hole x={w / 2} y={h / 2} r={2.2} />}
     </g>
   )
 }
@@ -479,11 +481,49 @@ function Pad({ spec }: { spec: PartSpec }) {
 // ---- TOOLS ---------------------------------------------------------------
 function Tool({ spec }: { spec: PartSpec }) {
   if (spec.variant === 'screwdriver') {
+    // BS104 is a red T-handle hex/screw driver in the photos:
+    //   ▔▔▔▔▔   <- red plastic crossbar
+    //     ┃     <- silver shaft
+    const w = spec.width
+    const h = spec.height
+    const handleW = w * 0.55
+    const handleH = h
+    const shaftW = 5
+    const shaftLen = w * 0.45
     return (
       <g>
-        <rect x={0} y={spec.height / 2 - 3} width={spec.width * 0.6} height={6} fill="#bdc3c7" stroke="#5d6266" />
-        <rect x={spec.width * 0.6} y={0} width={spec.width * 0.4} height={spec.height} rx={3} fill={COL.red} stroke={COL.redDark} />
-        <rect x={spec.width * 0.6} y={spec.height * 0.4} width={spec.width * 0.4} height={spec.height * 0.2} fill={COL.redDark} />
+        <defs>
+          <linearGradient id={`bs104-${spec.sku}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={COL.redHi} />
+            <stop offset="60%" stopColor={COL.red} />
+            <stop offset="100%" stopColor={COL.redDark} />
+          </linearGradient>
+          <linearGradient id={`bs104-shaft-${spec.sku}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={COL.silverHi} />
+            <stop offset="100%" stopColor={COL.silverDark} />
+          </linearGradient>
+        </defs>
+        {/* shaft */}
+        <rect
+          x={handleW}
+          y={h / 2 - shaftW / 2}
+          width={shaftLen}
+          height={shaftW}
+          fill={`url(#bs104-shaft-${spec.sku})`}
+          stroke={COL.silverDark}
+          strokeWidth={0.4}
+        />
+        {/* hex tip */}
+        <polygon
+          points={`${handleW + shaftLen - 6},${h / 2 - shaftW / 2 - 1} ${handleW + shaftLen},${h / 2 - shaftW / 2 - 1} ${handleW + shaftLen + 2},${h / 2} ${handleW + shaftLen},${h / 2 + shaftW / 2 + 1} ${handleW + shaftLen - 6},${h / 2 + shaftW / 2 + 1}`}
+          fill="#1a1d20"
+          stroke="#000"
+          strokeWidth={0.5}
+        />
+        {/* T-shaped red handle */}
+        <rect x={0} y={0} width={handleW} height={handleH} rx={4} fill={`url(#bs104-${spec.sku})`} stroke={COL.redDark} strokeWidth={0.7} />
+        <rect x={2} y={2} width={handleW - 4} height={1.5} rx={0.7} fill="white" opacity={0.35} />
+        <rect x={handleW - 6} y={h * 0.25} width={3} height={h * 0.5} fill={COL.redDark} opacity={0.5} />
       </g>
     )
   }

@@ -41,11 +41,13 @@ function localHoles(spec: PartSpec): { x: number; y: number }[] {
         ]
       }
       if (spec.variant === 'h-trim') {
-        return [
-          { x: w * 0.5, y: h * 0.5 },
-          { x: w * 0.1, y: h * 0.5 },
-          { x: w * 0.9, y: h * 0.5 },
+        const tabR = h / 2 - 0.5
+        const out = [
+          { x: tabR, y: h / 2 },
+          { x: w - tabR, y: h / 2 },
         ]
+        if (w > 50) out.push({ x: w / 2, y: h / 2 })
+        return out
       }
       // grid
       const cols = spec.cols || 3

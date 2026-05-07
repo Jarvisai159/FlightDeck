@@ -176,7 +176,7 @@ export const KIT_1204: KitDef = {
     { sku: 'TB201', count: 6 },
     { sku: 'B201', count: 3 },
     { sku: 'TB302', count: 5 },
-    { sku: 'TC301', count: 4 },
+    { sku: 'TC301', count: 2 },
     { sku: 'C301', count: 1 },
     { sku: 'C503X', count: 1 },
     { sku: 'C1212', count: 1 },
@@ -195,7 +195,7 @@ export const KIT_1204: KitDef = {
     { sku: 'S010', count: 2 },
     { sku: 'S012', count: 1 },
     { sku: 'S030', count: 1 },
-    { sku: 'S040', count: 4 },
+    { sku: 'S040', count: 1 },
   ],
 }
 
@@ -253,8 +253,20 @@ export const KIT_AIRCRAFT: KitDef = {
     { sku: 'S010', count: 5 },
     { sku: 'S011', count: 2 },
     { sku: 'S030', count: 1 },
-    { sku: 'S040', count: 2 },
+    { sku: 'S040', count: 3 },
   ],
 }
 
 export const KITS: KitDef[] = [KIT_1204, KIT_AIRCRAFT]
+
+// Sanity check — surfaces a console warning if the counted inventory drifts
+// from the headline piece total printed on the box.
+if (typeof window !== 'undefined') {
+  for (const kit of [KIT_1204, KIT_AIRCRAFT]) {
+    const sum = kit.inventory.reduce((acc, it) => acc + it.count, 0)
+    if (sum !== kit.pieces) {
+      // eslint-disable-next-line no-console
+      console.warn(`[parts] ${kit.id}: inventory sums to ${sum}, label says ${kit.pieces}`)
+    }
+  }
+}
