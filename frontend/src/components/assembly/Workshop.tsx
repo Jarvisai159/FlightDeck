@@ -33,8 +33,8 @@ interface Props {
 }
 
 const GRID = 14
-const SNAP_RADIUS = 16   // px world-space — magnetic pull while dragging
-const JOINT_THRESHOLD = 6 // px — holes within this distance are considered joined
+const SNAP_RADIUS = 22   // px world-space — magnetic pull while dragging
+const JOINT_THRESHOLD = 7 // px — holes within this distance are considered joined
 
 /**
  * Compute the set of joints between placed parts.  A joint exists when a hole
@@ -133,10 +133,36 @@ export default function Workshop({
     offsetX: number
     offsetY: number
     moved: boolean
+    /** other parts that should travel together as a bolted assembly,
+     *  with their offsets relative to the dragged anchor. */
+    group: { id: string; dx: number; dy: number }[]
   } | null>(null)
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null)
 
   const joints = useMemo(() => computeJoints(parts), [parts])
+
+  /** Connected component of joined parts containing `seed`. */
+  const componentOf = (seed: string): string[] => {
+    const adj = new Map<string, Set<string>>()
+    for (const j of joints) {
+      if (!adj.has(j.partAId)) adj.set(j.partAId, new Set())
+      if (!adj.has(j.partBId)) adj.set(j.partBId, new Set())
+      adj.get(j.partAId)!.add(j.partBId)
+      adj.get(j.partBId)!.add(j.partAId)
+    }
+    const seen = new Set<string>([seed])
+    const queue = [seed]
+    while (queue.length) {
+      const cur = queue.shift()!
+      for (const n of adj.get(cur) || []) {
+        if (!seen.has(n)) {
+          seen.add(n)
+          queue.push(n)
+        }
+      }
+    }
+    return [...seen]
+  }
 
   useEffect(() => {
     onJointsChange?.(joints)
@@ -175,7 +201,18 @@ export default function Workshop({
     e.stopPropagation()
     onSelect(p.id)
     const { x, y } = svgPoint(e)
-    setDrag({ id: p.id, offsetX: x - p.x, offsetY: y - p.y, moved: false })
+    // Hold Alt to drag a single part out of an assembly; default drags the
+    // whole bolted group together so users don't accidentally tear it apart.
+    const dragSolo = e.altKey
+    const group = dragSolo
+      ? []
+      : componentOf(p.id)
+          .filter((id) => id !== p.id)
+          .map((id) => {
+            const other = parts.find((q) => q.id === id)!
+            return { id, dx: other.x - p.x, dy: other.y - p.y }
+          })
+    setDrag({ id: p.id, offsetX: x - p.x, offsetY: y - p.y, moved: false, group })
     ;(e.currentTarget as SVGGElement).setPointerCapture?.(e.pointerId)
   }
 
@@ -187,11 +224,19 @@ export default function Workshop({
     if (!dragged) return
     const rawX = snap(x - drag.offsetX)
     const rawY = snap(y - drag.offsetY)
-    const others = parts
+    // Magnetic snap: ignore the rest of the assembly (group) when looking for
+    // a hole to dock against, otherwise we snap to ourselves.
+    const groupIds = new Set([drag.id, ...drag.group.map((g) => g.id)])
+    const others = parts.filter((p) => !groupIds.has(p.id))
     const snapped = snapToNearestHole(drag.id, dragged.sku, rawX, rawY, dragged.rotation, others)
     const finalX = snapped ? snapped.x : rawX
     const finalY = snapped ? snapped.y : rawY
     onUpdate(drag.id, { x: finalX, y: finalY })
+    // Move every group member by the same delta so the whole assembly travels
+    // as one rigid body.
+    for (const g of drag.group) {
+      onUpdate(g.id, { x: finalX + g.dx, y: finalY + g.dy })
+    }
     if (!drag.moved) setDrag({ ...drag, moved: true })
   }
 

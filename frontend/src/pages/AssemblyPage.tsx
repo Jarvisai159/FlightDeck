@@ -319,8 +319,9 @@ export default function AssemblyPage() {
               </div>
               <ul className="space-y-1.5 text-text-secondary">
                 <li><kbd className="kbd">Click</kbd> a part in the bin, then click the grid to place it</li>
-                <li><kbd className="kbd">Drag</kbd> a part — holes <span className="text-accent">snap together magnetically</span></li>
-                <li>When holes meet, a bolt + nut auto-tightens (consumes inventory)</li>
+                <li><kbd className="kbd">Drag</kbd> any part — bolted assemblies travel together</li>
+                <li><kbd className="kbd">Alt</kbd>+<kbd className="kbd">Drag</kbd> to separate one part out of an assembly</li>
+                <li>Holes <span className="text-accent">snap together magnetically</span> — bolts auto-tighten</li>
                 <li>Drag parts apart to loosen (returns bolts to the bin)</li>
                 <li><kbd className="kbd">R</kbd> / <kbd className="kbd">Shift+R</kbd> rotate ±15°</li>
                 <li><kbd className="kbd">[</kbd> / <kbd className="kbd">]</kbd> rotate 90°</li>
